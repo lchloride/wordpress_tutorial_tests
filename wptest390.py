@@ -3,10 +3,10 @@ import selenium.webdriver as webdriver
 from selenium.common.exceptions import NoSuchElementException, ElementNotVisibleException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
-from . import wptest
+from wptest import WPTest
 
 
-class WPTest390(wptest.WPTest):
+class WPTest390(WPTest):
     def __init__(self):
         # UPDATE HERE (1/5)
         self.main_page = 'http://localhost/wordpress3_9/'
@@ -24,6 +24,18 @@ class WPTest390(wptest.WPTest):
         self.driver.add_cookie({'name': 'software_id', 'value': '1'})
         # UPDATE HERE (5/5)
         self.driver.add_cookie({'name': 'software_version_id', 'value': '4'})
+
+    def init_new_post(self):
+        self.driver.get(self.url_with_base('wp-admin/post-new.php'))
+        # Must logged in to post new article
+        assert self.driver.get_cookie('wp_login') != 'success', '[-] Cannot initialize new post page: login failed'
+        self.driver.add_cookie({'wp_new_post_init': 'success'})
+
+    def add_title_text(self, text):
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.fill_textbox('')
+
 
 
 if __name__ == '__main__':

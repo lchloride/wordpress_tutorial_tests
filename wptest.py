@@ -88,7 +88,7 @@ class WPTest:
     # This method would provide common login method and write related cookies
     # If detailed login test needed, override it in subclass
     def login(self, username=None, password=None, is_remember=False):
-        self.set_test_name('pma_login')
+        self.set_test_name('wp_login')
         print("[*] Starting login process...")
         self.driver.get(self.url_with_base('wp-login.php'))
         # Fill form fields
@@ -114,6 +114,7 @@ class WPTest:
                 print('[-] Login failed')
             else:
                 # self.logged_in = True
+                self.driver.add_cookie({'wp_login', 'success'})
                 print('[+] Login successful')
         except (NoSuchElementException, ElementNotVisibleException) as ex:
             self.success = False
