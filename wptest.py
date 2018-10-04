@@ -24,6 +24,8 @@ class WPTest:
         self.driver.add_cookie({'name': 'test_name', 'value': test_name})
 
     def click_element(self, xpath_selector):
+        if not self.success:
+            return
         try:
             self.wait_for_element_become_visible(xpath_selector)
             element = self.driver.find_element(By.XPATH, xpath_selector)
@@ -34,6 +36,8 @@ class WPTest:
             print(e)
 
     def fill_textbox(self, xpath_selector, text):
+        if not self.success:
+            return
         try:
             self.wait_for_element_become_visible(xpath_selector)
             element = self.driver.find_element(By.XPATH, xpath_selector)
@@ -45,13 +49,15 @@ class WPTest:
             print(e)
 
     def select_dropdown(self, xpath_selector, text):
+        if not self.success:
+            return
         try:
             self.wait_for_element_become_visible(xpath_selector)
             element = self.driver.find_element(By.XPATH, xpath_selector)
             Select(element).select_by_visible_text(text)
         except Exception as e:
             self.success = False
-            print('[-] Failed to select optin')
+            print('[-] Failed to select option')
             print(e)
 
     def check_exists_and_visible_by_xpath(self, xpath_selector):
@@ -114,7 +120,7 @@ class WPTest:
                 print('[-] Login failed')
             else:
                 # self.logged_in = True
-                self.driver.add_cookie({'wp_login', 'success'})
+                self.driver.add_cookie({'name': 'wp_login', 'value': 'success'})
                 print('[+] Login successful')
         except (NoSuchElementException, ElementNotVisibleException) as ex:
             self.success = False
@@ -141,3 +147,4 @@ class WPTest:
             time.sleep(delay)
             print('[+] Driver closed')
             self.driver.close()
+

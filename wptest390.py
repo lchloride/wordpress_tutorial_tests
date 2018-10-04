@@ -4,6 +4,7 @@ from selenium.common.exceptions import NoSuchElementException, ElementNotVisible
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from wptest import WPTest
+from styleparser import StyleParser
 
 
 class WPTest390(WPTest):
@@ -11,6 +12,8 @@ class WPTest390(WPTest):
         # UPDATE HERE (1/5)
         self.main_page = 'http://localhost/wordpress3_9/'
         super().__init__(self.main_page)
+        self.driver.get(self.main_page)
+        self.driver.delete_all_cookies()
         self.add_cookies()
 
     # Override parent's method
@@ -26,20 +29,104 @@ class WPTest390(WPTest):
         self.driver.add_cookie({'name': 'software_version_id', 'value': '4'})
 
     def init_new_post(self):
+        print('[*] Starting new post test...')
         self.driver.get(self.url_with_base('wp-admin/post-new.php'))
         # Must logged in to post new article
         assert self.driver.get_cookie('wp_login') != 'success', '[-] Cannot initialize new post page: login failed'
-        self.driver.add_cookie({'wp_new_post_init': 'success'})
+        self.click_element('//*[@id="show-settings-link"]')
+        time.sleep(2)
+        if self.driver.find_element_by_xpath('//*[@id="postexcerpt-hide"]').get_attribute('checked') is None:
+            self.click_element('//*[@id="postexcerpt-hide"]')
+        if self.driver.find_element_by_xpath('//*[@id="trackbacksdiv-hide"]').get_attribute('checked') is None:
+            self.click_element('//*[@id="trackbacksdiv-hide"]')
+        if self.driver.find_element_by_xpath('//*[@id="postcustom-hide"]').get_attribute('checked') is None:
+            self.click_element('//*[@id="postcustom-hide"]')
+        if self.driver.find_element_by_xpath('//*[@id="commentstatusdiv-hide"]').get_attribute('checked') is None:
+            self.click_element('//*[@id="commentstatusdiv-hide"]')
+        if self.driver.find_element_by_xpath('//*[@id="slugdiv-hide"]').get_attribute('checked') is None:
+            self.click_element('//*[@id="slugdiv-hide"]')
+        if self.driver.find_element_by_xpath('//*[@id="authordiv-hide"]').get_attribute('checked') is None:
+            self.click_element('//*[@id="authordiv-hide"]')
+        if self.driver.find_element_by_xpath('//*[@id="show-settings-link"]').get_attribute('checked') is None:
+            self.click_element('//*[@id="show-settings-link"]')
+        if self.success:
+            self.driver.add_cookie({'name': 'wp_new_post_init', 'value': 'success'})
+            print('[+] Test initialization successful')
 
     def add_title_text(self, text):
+        print('[+] Adding title...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
-        self.fill_textbox('')
+        self.fill_textbox('//*[@id="title"]', text)
 
+    def add_body_text(self, text):
+        print('[+] Adding body...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.click_element('//*[@id="content-html"]')
+        self.fill_textbox('//*[@id="content"]', text)
+
+    def preview_post(self):
+        print('[+] Preview post...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.click_element('//*[@id="post-preview"]')
+
+    def save_post(self):
+        print('[+] Saving post...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.driver.execute_script("window.scrollTo(0, 0)");
+        self.click_element('//*[@id="save-post"]')
+
+    def publish_post(self):
+        print('[+] Publishing post...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.click_element('//*[@id="publish"]')
+
+    def select_category(self, idx):
+        print('[+] Select category...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        categories = self.driver.find_elements_by_xpath('//*[@id="categorychecklist"]/li')
+        if 1 <= idx <= len(categories):
+            self.click_element('//*[@id="in-category-' + str(idx) + '"]')
+        else:
+            print('[!] Invalid category index, using 1 instead')
+            self.click_element('//*[@id="in-category-1"]')
+
+    def add_excerpt(self, text):
+        print('[+] Adding excerpt...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="postexcerpt"]').get_attribute('style'))
+        # print(styles)
+        if styles.get_style_value('display') != 'none' or styles.get_style_value('display') is None:
+            self.fill_textbox('//*[@id="excerpt"]', text)
+        else:
+            print('[-] Cannot find excerpt textarea')
+
+    # TODO
+    def change_status(self):
+        print('[+] Changing status')
+
+    def new_post_tests(self):
+        self.init_new_post() if self.success else None
+        self.select_category(2) if self.success else None
+        self.add_title_text('Test') if self.success else None
+        self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
+        self.add_excerpt('This is a test') if self.success else None
+        self.save_post() if self.success else None
+        # self.preview_post() if self.success else None
+        self.publish_post() if self.success else None
 
 
 if __name__ == '__main__':
     # Test chrome driver
     test = WPTest390()
     test.login('admin', 'Admin123456')
-    test.close(delay=2)
+
+    test.new_post_tests()
+
+    test.close(delay=3)
