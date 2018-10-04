@@ -40,6 +40,7 @@ class WPTest:
             return
         try:
             self.wait_for_element_become_visible(xpath_selector)
+            time.sleep(1)
             element = self.driver.find_element(By.XPATH, xpath_selector)
             element.clear()
             element.send_keys(text)
@@ -99,10 +100,10 @@ class WPTest:
         self.driver.get(self.url_with_base('wp-login.php'))
         # Fill form fields
         try:
-            # if self.logged_in:
-            #     print('[+] Already logged in, skipping.')
-            #     return
-            # Enter Username
+            if self.driver.get_cookie('wp_login') == 'success':
+                print('[+] Already logged_in, skipped')
+                return
+
             self.fill_textbox('//*[@id="user_login"]', 'wpuser' if username is None else username)
             # Enter password
             self.fill_textbox('//*[@id="user_pass"]', 'password' if password is None else password)
@@ -143,8 +144,18 @@ class WPTest:
         if close_on_suc and not self.success:
             pass
         else:
-            print('[+] Driver will be closed after', delay, 'seconds')
+            print('[+] Window will be closed after', delay, 'seconds')
             time.sleep(delay)
-            print('[+] Driver closed')
+            print('[+] Window closed')
             self.driver.close()
 
+    def close_all(self, delay=0):
+        handles = self.driver.window_handles
+        print('[*] Find %d window(s), these will be closed after %d seconds...' \
+            %(len(handles), delay))
+        time.sleep(delay)
+        for window in handles:
+            self.driver.switch_to_window(window)
+            print('[+] Find window with title:', self.driver.title)
+            print('[+] Window closed')
+            self.driver.close()

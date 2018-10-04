@@ -84,6 +84,8 @@ class WPTest390(WPTest):
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
         self.click_element('//*[@id="publish"]')
+        if self.wait_for_text_in_page('Post published.') is None:
+            print('[-] Publishing failed')
 
     def select_category(self, idx):
         print('[+] Select category...')
@@ -107,9 +109,22 @@ class WPTest390(WPTest):
         else:
             print('[-] Cannot find excerpt textarea')
 
-    # TODO
-    def change_status(self):
+    # status_text should be Draft(default) or Pending Review
+    def change_status(self, status_text='Draft'):
         print('[+] Changing status')
+        self.driver.execute_script("window.scrollTo(0, 0)");
+        self.click_element('//*[@id="misc-publishing-actions"]/div[1]/a')
+        styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="post-status-select"]')
+                            .get_attribute('style'))
+        if styles.get_style_value('display') == 'none':
+            self.success = False
+            print('[-] Status panel not displayed')
+            return
+        self.select_dropdown('//*[@id="post_status"]', status_text)
+        self.click_element('//*[@id="post-status-select"]/a[1]')
+        if self.wait_for_text_in_page(status_text) is None:
+            self.success = False
+            print('[-] Changing status failed')
 
     def new_post_tests(self):
         self.init_new_post() if self.success else None
@@ -117,8 +132,9 @@ class WPTest390(WPTest):
         self.add_title_text('Test') if self.success else None
         self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
         self.add_excerpt('This is a test') if self.success else None
+        self.change_status('Pending Review')
         self.save_post() if self.success else None
-        # self.preview_post() if self.success else None
+        self.preview_post() if self.success else None
         self.publish_post() if self.success else None
 
 
@@ -129,4 +145,4 @@ if __name__ == '__main__':
 
     test.new_post_tests()
 
-    test.close(delay=3)
+    test.close_all(delay=3)
