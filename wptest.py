@@ -1,6 +1,6 @@
 import time, os, errno, argparse, sys, random, string
 import selenium.webdriver as webdriver
-from selenium.common.exceptions import NoSuchElementException, ElementNotVisibleException
+from selenium.common.exceptions import NoSuchElementException, ElementNotVisibleException, WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 
@@ -10,8 +10,13 @@ class WPTest:
         self.main_page = main_page
         print("[+] Setting up ChromeDriver")
         options = webdriver.chrome.options.Options()
+        options.add_argument("--start-maximized");
         self.driver = webdriver.Chrome(chrome_options=options)
-        self.driver.maximize_window()
+        # try:
+        #     self.driver.maximize_window()
+        # except WebDriverException as e:
+        #     # Change dimension of screen to actual resolution
+        #     pass
         self.driver.set_page_load_timeout(60)
         self.success = True
 

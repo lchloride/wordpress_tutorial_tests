@@ -35,6 +35,7 @@ class WPTest390(WPTest):
         assert self.driver.get_cookie('wp_login') != 'success', '[-] Cannot initialize new post page: login failed'
         self.click_element('//*[@id="show-settings-link"]')
         time.sleep(2)
+        print(self.driver.find_element_by_xpath('//*[@id="postexcerpt"]').is_displayed())
         if self.driver.find_element_by_xpath('//*[@id="postexcerpt-hide"]').get_attribute('checked') is None:
             self.click_element('//*[@id="postexcerpt-hide"]')
         if self.driver.find_element_by_xpath('//*[@id="trackbacksdiv-hide"]').get_attribute('checked') is None:
@@ -112,7 +113,7 @@ class WPTest390(WPTest):
     # status_text should be Draft(default) or Pending Review
     def change_status(self, status_text='Draft'):
         print('[+] Changing status')
-        self.driver.execute_script("window.scrollTo(0, 0)");
+        # self.driver.execute_script("window.scrollTo(0, 0)");
         self.click_element('//*[@id="misc-publishing-actions"]/div[1]/a')
         styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="post-status-select"]')
                             .get_attribute('style'))
@@ -126,16 +127,21 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Changing status failed')
 
+    # # TODO:
+    def change_visibility(self, visibility):
+        print('[+] Changing visibility')
+
+
     def new_post_tests(self):
         self.init_new_post() if self.success else None
-        self.select_category(2) if self.success else None
-        self.add_title_text('Test') if self.success else None
-        self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
-        self.add_excerpt('This is a test') if self.success else None
-        self.change_status('Pending Review')
-        self.save_post() if self.success else None
-        self.preview_post() if self.success else None
-        self.publish_post() if self.success else None
+        # self.select_category(2) if self.success else None
+        # self.add_title_text('Test') if self.success else None
+        # self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
+        # self.add_excerpt('This is a test') if self.success else None
+        # self.change_status('Pending Review')
+        # self.save_post() if self.success else None
+        # self.preview_post() if self.success else None
+        # self.publish_post() if self.success else None
 
 
 if __name__ == '__main__':
@@ -145,4 +151,4 @@ if __name__ == '__main__':
 
     test.new_post_tests()
 
-    test.close_all(delay=3)
+    # test.close_all(delay=3)
