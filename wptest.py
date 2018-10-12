@@ -105,7 +105,7 @@ class WPTest:
             self.success = False
             return None
         state = ele.get_attribute('checked')
-        return True if state is None or state.lower() == 'false' else False
+        return False if state is None or state.lower() == 'false' else True
 
     # This method would provide common login method and write related cookies
     # If detailed login test needed, override it in subclass

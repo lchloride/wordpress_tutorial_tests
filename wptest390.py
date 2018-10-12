@@ -48,11 +48,12 @@ class WPTest390(WPTest):
             self.click_element('//*[@id="slugdiv-hide"]')
         if not self.checkbox_is_checked('//*[@id="authordiv-hide"]'):
             self.click_element('//*[@id="authordiv-hide"]')
-        if not self.checkbox_is_checked('//*[@id="show-settings-link"]'):
-            self.click_element('//*[@id="show-settings-link"]')
+
+        self.click_element('//*[@id="show-settings-link"]')
+        time.sleep(2)
         if self.success:
             self.driver.add_cookie({'name': 'wp_new_post_init', 'value': 'success'})
-            print('[+] Test initialization successful')
+            print('[+] Test initialization finished')
 
     def add_title_text(self, text):
         print('[+] Adding title...')
@@ -173,6 +174,32 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Failed to change visibility, current visibility does not match')
 
+    def change_publish_datetime(self, year=None, month=None, day=None, hour=None, minute=None):
+        print('[+] Changing publishing datetime')
+        trans_mon_str = ['', '01-Jan', '02-Feb', '03-Mar', '04-Apr', '05-May', '06-Jun', '07-Jul', '08-Aug', '09-Sep',
+                         '10-Oct', '11-Nov', '12-Dec']
+        self.click_element('//*[@id="misc-publishing-actions"]/div[3]/a')
+
+        if year is not None:
+            self.fill_textbox('//*[@id="aa"]', str(year))
+        if month is not None:
+            self.select_dropdown('//*[@id="mm"]', trans_mon_str[month])
+        if day is not None:
+            self.fill_textbox('//*[@id="jj"]', str(day))
+        if hour is not None:
+            self.fill_textbox('//*[@id="hh"]', str(hour))
+        if minute is not None:
+            self.fill_textbox('//*[@id="mn"]', str(minute))
+
+        self.click_element('//*[@id="timestampdiv"]/p/a[1]')
+
+        # Check datetime in format like 09-Sep 04, 2018 @ 14 : 47
+        publishing_datetime = '%s %d, %d @ %d : %d' % (trans_mon_str[month], day, year, hour, minute)
+        if publishing_datetime == self.driver.find_element_by_xpath('//*[@id="timestamp"]/b').text:
+            print('[+] Changing publishing datetime successfully')
+        else:
+            self.success = False
+            print('[-] Current publishing datetime does not match')
 
 
     def new_post_tests(self):
@@ -182,10 +209,13 @@ class WPTest390(WPTest):
         # self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
         # self.add_excerpt('This is a test') if self.success else None
         # self.change_status('Pending Review')
-        self.change_visibility('private')
+        # self.change_visibility('private')
+        self.change_publish_datetime(2017,8,9,1,2)
         # self.save_post() if self.success else None
         # self.preview_post() if self.success else None
         # self.publish_post() if self.success else None
+        if self.success:
+            print('[+] New post test finished')
 
 
 if __name__ == '__main__':
@@ -195,4 +225,4 @@ if __name__ == '__main__':
 
     test.new_post_tests()
 
-    test.close_all(delay=3)
+    # test.close_all(delay=3)
