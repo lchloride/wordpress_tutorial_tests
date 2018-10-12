@@ -97,6 +97,16 @@ class WPTest:
                 return None
         return True
 
+    def checkbox_is_checked(self, xpath_selector):
+        try:
+            ele = self.driver.find_element_by_xpath(xpath_selector)
+        except NoSuchElementException:
+            print('[-] Element of %s is not found' % xpath_selector)
+            self.success = False
+            return None
+        state = ele.get_attribute('checked')
+        return True if state is None or state.lower() == 'false' else False
+
     # This method would provide common login method and write related cookies
     # If detailed login test needed, override it in subclass
     def login(self, username=None, password=None, is_remember=False):

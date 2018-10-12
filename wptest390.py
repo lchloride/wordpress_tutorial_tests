@@ -35,20 +35,20 @@ class WPTest390(WPTest):
         assert self.driver.get_cookie('wp_login') != 'success', '[-] Cannot initialize new post page: login failed'
         self.click_element('//*[@id="show-settings-link"]')
         time.sleep(2)
-        print(self.driver.find_element_by_xpath('//*[@id="postexcerpt"]').is_displayed())
-        if self.driver.find_element_by_xpath('//*[@id="postexcerpt-hide"]').get_attribute('checked') is None:
+
+        if not self.checkbox_is_checked('//*[@id="postexcerpt-hide"]'):
             self.click_element('//*[@id="postexcerpt-hide"]')
-        if self.driver.find_element_by_xpath('//*[@id="trackbacksdiv-hide"]').get_attribute('checked') is None:
+        if not self.checkbox_is_checked('//*[@id="trackbacksdiv-hide"]'):
             self.click_element('//*[@id="trackbacksdiv-hide"]')
-        if self.driver.find_element_by_xpath('//*[@id="postcustom-hide"]').get_attribute('checked') is None:
+        if not self.checkbox_is_checked('//*[@id="postcustom-hide"]'):
             self.click_element('//*[@id="postcustom-hide"]')
-        if self.driver.find_element_by_xpath('//*[@id="commentstatusdiv-hide"]').get_attribute('checked') is None:
+        if not self.checkbox_is_checked('//*[@id="commentstatusdiv-hide"]'):
             self.click_element('//*[@id="commentstatusdiv-hide"]')
-        if self.driver.find_element_by_xpath('//*[@id="slugdiv-hide"]').get_attribute('checked') is None:
+        if not self.checkbox_is_checked('//*[@id="slugdiv-hide"]'):
             self.click_element('//*[@id="slugdiv-hide"]')
-        if self.driver.find_element_by_xpath('//*[@id="authordiv-hide"]').get_attribute('checked') is None:
+        if not self.checkbox_is_checked('//*[@id="authordiv-hide"]'):
             self.click_element('//*[@id="authordiv-hide"]')
-        if self.driver.find_element_by_xpath('//*[@id="show-settings-link"]').get_attribute('checked') is None:
+        if not self.checkbox_is_checked('//*[@id="show-settings-link"]'):
             self.click_element('//*[@id="show-settings-link"]')
         if self.success:
             self.driver.add_cookie({'name': 'wp_new_post_init', 'value': 'success'})
@@ -77,7 +77,7 @@ class WPTest390(WPTest):
         print('[+] Saving post...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
-        self.driver.execute_script("window.scrollTo(0, 0)");
+        self.driver.execute_script("window.scrollTo(0, 0)")
         self.click_element('//*[@id="save-post"]')
 
     def publish_post(self):
@@ -103,21 +103,28 @@ class WPTest390(WPTest):
         print('[+] Adding excerpt...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
-        styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="postexcerpt"]').get_attribute('style'))
-        # print(styles)
-        if styles.get_style_value('display') != 'none' or styles.get_style_value('display') is None:
+        # styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="postexcerpt"]').get_attribute('style'))
+        # # print(styles)
+        # if styles.get_style_value('display') != 'none' or styles.get_style_value('display') is None:
+        if self.driver.find_element_by_xpath('//*[@id="postexcerpt"]').is_displayed():
             self.fill_textbox('//*[@id="excerpt"]', text)
         else:
             print('[-] Cannot find excerpt textarea')
 
-    # status_text should be Draft(default) or Pending Review
-    def change_status(self, status_text='Draft'):
+    # status_text should be one of Published, Draft(default) or Pending Review
+    def change_status(self, status_text='Published'):
         print('[+] Changing status')
         # self.driver.execute_script("window.scrollTo(0, 0)");
+
+        # If article is private, we cannot change its status
+        if self.driver.find_element_by_xpath('//*[@id="post-status-display"]').text == 'Privately Published':
+            print('[!] Cannot set status since this article is private')
+            return
         self.click_element('//*[@id="misc-publishing-actions"]/div[1]/a')
-        styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="post-status-select"]')
-                            .get_attribute('style'))
-        if styles.get_style_value('display') == 'none':
+        # styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="post-status-select"]')
+        #                     .get_attribute('style'))
+        # if styles.get_style_value('display') == 'none':
+        if self.driver.find_element_by_xpath('//*[@id="post-status-select"]').is_displayed():
             self.success = False
             print('[-] Status panel not displayed')
             return
@@ -127,9 +134,45 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Changing status failed')
 
-    # # TODO:
-    def change_visibility(self, visibility):
+    # Change visibility of article
+    def change_visibility(self, visibility="public", password=None):
         print('[+] Changing visibility')
+        self.click_element('//*[@id="visibility"]/a')
+        if visibility == 'public':
+            self.click_element('//*[@id="visibility-radio-public"]')
+        elif visibility == 'public_sticky':
+            self.click_element('//*[@id="visibility-radio-public"]')
+            if not self.checkbox_is_checked('//*[@id="sticky"]'):
+                self.click_element('//*[@id="sticky"]')
+        elif visibility == 'protected':
+            self.click_element('//*[@id="visibility-radio-password"]')
+            if password is None:
+                self.success = False
+                print('[-] Password needed')
+            elif len(password) > 20:
+                print('[-] Password too long')
+            else:
+                self.fill_textbox('//*[@id="post_password"]', password)
+        elif visibility == 'private':
+            self.click_element('//*[@id="visibility-radio-private"]')
+        else:
+            self.success = False
+            print('[-] Invalid visibility level. It should be one of public, public_sticky, protected and private.')
+            return
+
+        self.click_element('//*[@id="post-visibility-select"]/p/a[1]')
+
+        updated_state = self.driver.find_element_by_xpath('//*[@id="post-visibility-display"]').text
+
+        if (visibility == 'public' and updated_state == 'Public') or \
+                (visibility == 'public_sticky' and updated_state == 'Public, Sticky') or \
+                (visibility == 'protected' and updated_state == 'Password Protected') or \
+                (visibility == 'private' and updated_state == 'Private'):
+            print('[+] Changing visibility successfully')
+        else:
+            self.success = False
+            print('[-] Failed to change visibility, current visibility does not match')
+
 
 
     def new_post_tests(self):
@@ -139,6 +182,7 @@ class WPTest390(WPTest):
         # self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
         # self.add_excerpt('This is a test') if self.success else None
         # self.change_status('Pending Review')
+        self.change_visibility('private')
         # self.save_post() if self.success else None
         # self.preview_post() if self.success else None
         # self.publish_post() if self.success else None
@@ -151,4 +195,4 @@ if __name__ == '__main__':
 
     test.new_post_tests()
 
-    # test.close_all(delay=3)
+    test.close_all(delay=3)
