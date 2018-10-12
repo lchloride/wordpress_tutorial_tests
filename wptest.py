@@ -66,6 +66,38 @@ class WPTest:
             print('[-] Failed to select option')
             print(e)
 
+    def checkbox_is_checked(self, xpath_selector):
+        if not self.success:
+            return
+        ele = None
+        try:
+            self.wait_for_element_become_visible(xpath_selector)
+            ele = self.driver.find_element_by_xpath(xpath_selector)
+        except NoSuchElementException:
+            print('[-] Element of %s is not found' % xpath_selector)
+            self.success = False
+            return None
+        except Exception as e:
+            self.success = False
+            print('[-] Failed to check the state of checkbox')
+            print(e)
+
+        state = ele.get_attribute('checked')
+        return False if state is None or state.lower() == 'false' else True
+
+    def upload_file_input(self, xpath_selector, file_path):
+        try:
+            ele = self.driver.find_element_by_xpath(xpath_selector)
+            if ele.tag_name != "input" or ele.get_attribute("type") != "file":
+                self.success = False
+                print('[-] Must use <input type="file"> for uploading')
+                return
+            self.driver.find_element_by_xpath(xpath_selector).send_keys(file_path)
+        except Exception as e:
+            self.success = False
+            print('[-] Failed to Upload file')
+            print(e)
+
     def check_exists_and_visible_by_xpath(self, xpath_selector):
         try:
             return self.driver.find_element_by_xpath(xpath_selector).is_displayed()
@@ -96,16 +128,6 @@ class WPTest:
                 print("[-] Timed out %s" % text)
                 return None
         return True
-
-    def checkbox_is_checked(self, xpath_selector):
-        try:
-            ele = self.driver.find_element_by_xpath(xpath_selector)
-        except NoSuchElementException:
-            print('[-] Element of %s is not found' % xpath_selector)
-            self.success = False
-            return None
-        state = ele.get_attribute('checked')
-        return False if state is None or state.lower() == 'false' else True
 
     # This method would provide common login method and write related cookies
     # If detailed login test needed, override it in subclass
@@ -167,7 +189,7 @@ class WPTest:
     def close_all(self, delay=0):
         handles = self.driver.window_handles
         print('[*] Find %d window(s), these will be closed after %d seconds...' \
-            %(len(handles), delay))
+              % (len(handles), delay))
         time.sleep(delay)
         for window in handles:
             self.driver.switch_to_window(window)

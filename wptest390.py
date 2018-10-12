@@ -226,6 +226,27 @@ class WPTest390(WPTest):
                 return
         print('[+] Adding tag finished')
 
+    def set_feature_image_by_uploading(self, image_path):
+        print('[+] Selecting feature image...')
+        self.click_element('//*[@id="set-post-thumbnail"]')
+
+        self.click_element('//*[@id="__wp-uploader-id-0"]/div[3]/div/a[1]')
+
+        self.upload_file_input('//*[@id="__wp-uploader-id-0"]/div[@class="moxie-shim moxie-shim-html5"]/input',
+                               image_path)
+
+        if self.wait_for_text_in_page("Edit Image"):
+            self.driver.save_screenshot("./1.png")
+            self.click_element('//*[@id="__wp-uploader-id-0"]/div[5]/div/div[2]/a') # Can be improved by class name
+            if self.wait_for_text_in_page('Remove featured image'):
+                print('[+] Setting feature image finished')
+            else:
+                self.success = False
+                print('[-] Failed to set uploaded image')
+        else:
+            self.success = False
+            print('[-] Failed to set uploaded image')
+
     def new_post_tests(self):
         self.init_new_post() if self.success else None
         # self.select_category(2) if self.success else None
@@ -235,7 +256,8 @@ class WPTest390(WPTest):
         # self.change_status('Pending Review')
         # self.change_visibility('private')
         # self.change_publish_datetime(2017,8,9,1,2)
-        self.add_tags(['test', 'example'])
+        # self.add_tags(['test', 'example'])
+        self.set_feature_image_by_uploading(os.path.abspath('./leaf.png'))
         # self.save_post() if self.success else None
         # self.preview_post() if self.success else None
         # self.publish_post() if self.success else None
