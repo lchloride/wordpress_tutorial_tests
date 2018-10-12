@@ -202,6 +202,30 @@ class WPTest390(WPTest):
             print('[-] Current publishing datetime does not match')
 
 
+    def add_tags(self, tag_list):
+        print('[+] Adding tags')
+        if len(tag_list) == 0:
+            print('[!] No tag provided')
+            return
+        tag_str = ''
+        for tag in tag_list:
+            tag_str += tag + ','
+        tag_str = tag_str[:-1]
+
+        self.fill_textbox('//*[@id="new-tag-post_tag"]', tag_str)
+        self.click_element('//*[@id="new-tag-post_tag"]/../input[2]')
+
+        ele = self.driver.find_elements_by_xpath('//*[@id="post_tag"]/div[2]/span')
+        updated_tag_list = []
+        for e in ele:
+            updated_tag_list.append(e.text[e.text.rfind(' ')+1:])
+        for tag in tag_list:
+            if tag not in updated_tag_list:
+                self.success = False
+                print('[-] Adding tag %s failed' % tag)
+                return
+        print('[+] Adding tag finished')
+
     def new_post_tests(self):
         self.init_new_post() if self.success else None
         # self.select_category(2) if self.success else None
@@ -210,7 +234,8 @@ class WPTest390(WPTest):
         # self.add_excerpt('This is a test') if self.success else None
         # self.change_status('Pending Review')
         # self.change_visibility('private')
-        self.change_publish_datetime(2017,8,9,1,2)
+        # self.change_publish_datetime(2017,8,9,1,2)
+        self.add_tags(['test', 'example'])
         # self.save_post() if self.success else None
         # self.preview_post() if self.success else None
         # self.publish_post() if self.success else None
