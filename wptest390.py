@@ -247,6 +247,16 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Failed to set uploaded image')
 
+    def set_traceback(self, link):
+        print('[+] Setting traceback link')
+
+        if self.driver.find_element_by_xpath('//*[@id="trackback_url"]').is_displayed():
+            self.fill_textbox('//*[@id="trackback_url"]', link)
+            print('[+] Setting traceback link finished')
+        else:
+            self.success = False
+            print('[-] Traceback textbox not found')
+
     def new_post_tests(self):
         self.init_new_post() if self.success else None
         # self.select_category(2) if self.success else None
@@ -258,6 +268,7 @@ class WPTest390(WPTest):
         # self.change_publish_datetime(2017,8,9,1,2)
         # self.add_tags(['test', 'example'])
         self.set_feature_image_by_uploading(os.path.abspath('./leaf.png'))
+        self.set_traceback('http://localhost/wordpress3_9/?p=1')
         # self.save_post() if self.success else None
         # self.preview_post() if self.success else None
         # self.publish_post() if self.success else None
