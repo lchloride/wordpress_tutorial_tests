@@ -174,6 +174,8 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Failed to change visibility, current visibility does not match')
 
+        time.sleep(1)
+
     def change_publish_datetime(self, year=None, month=None, day=None, hour=None, minute=None):
         print('[+] Changing publishing datetime')
         trans_mon_str = ['', '01-Jan', '02-Feb', '03-Mar', '04-Apr', '05-May', '06-Jun', '07-Jul', '08-Aug', '09-Sep',
@@ -257,6 +259,25 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Traceback textbox not found')
 
+    def add_custom_fields(self, fields):
+        print('[*] Adding custom fields...')
+
+        for name in fields.key():
+            value = fields[name]
+            if self.driver.find_element_by_xpath('//*[@id="newmetaleft"]/a').is_displayed():
+                # There exists a field, click "Enter new" first
+                self.click_element('//*[@id="newmetaleft"]/a')
+
+            # Fill in field
+            self.fill_textbox('//*[@id="metakeyinput"]', name)
+            self.fill_textbox('//*[@id="metavalue"]', value)
+            self.click_element('//*[@id="newmeta-submit"]')
+
+        if self.success:
+            print('[+] Adding custom fields finished')
+        else:
+            print('[+] Failed to addi custom fields')
+
     def new_post_tests(self):
         self.init_new_post() if self.success else None
         # self.select_category(2) if self.success else None
@@ -264,9 +285,9 @@ class WPTest390(WPTest):
         # self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
         # self.add_excerpt('This is a test') if self.success else None
         # self.change_status('Pending Review')
-        # self.change_visibility('private')
-        # self.change_publish_datetime(2017,8,9,1,2)
-        # self.add_tags(['test', 'example'])
+        self.change_visibility('private')
+        self.change_publish_datetime(2017,8,9,1,2)
+        self.add_tags(['test', 'example'])
         self.set_feature_image_by_uploading(os.path.abspath('./leaf.png'))
         self.set_traceback('http://localhost/wordpress3_9/?p=1')
         # self.save_post() if self.success else None
