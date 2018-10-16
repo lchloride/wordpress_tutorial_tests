@@ -105,6 +105,9 @@ class WPTest:
             return False
         return True
 
+    def to_page_top(self):
+        self.driver.execute_script("window.scrollTo(0, 0)")
+
     def wait_for_element_become_visible(self, xpath_selector):
         timeout = 20
         while not self.check_exists_and_visible_by_xpath(xpath_selector):

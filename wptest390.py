@@ -59,12 +59,14 @@ class WPTest390(WPTest):
         print('[+] Adding title...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
         self.fill_textbox('//*[@id="title"]', text)
 
     def add_body_text(self, text):
         print('[+] Adding body...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
         self.click_element('//*[@id="content-html"]')
         self.fill_textbox('//*[@id="content"]', text)
 
@@ -72,19 +74,21 @@ class WPTest390(WPTest):
         print('[+] Preview post...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
         self.click_element('//*[@id="post-preview"]')
 
     def save_post(self):
         print('[+] Saving post...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
-        self.driver.execute_script("window.scrollTo(0, 0)")
+        self.to_page_top()
         self.click_element('//*[@id="save-post"]')
 
     def publish_post(self):
         print('[+] Publishing post...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
         self.click_element('//*[@id="publish"]')
         if self.wait_for_text_in_page('Post published.') is None:
             print('[-] Publishing failed')
@@ -93,6 +97,8 @@ class WPTest390(WPTest):
         print('[+] Select category...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
         categories = self.driver.find_elements_by_xpath('//*[@id="categorychecklist"]/li')
         if 1 <= idx <= len(categories):
             self.click_element('//*[@id="in-category-' + str(idx) + '"]')
@@ -104,6 +110,8 @@ class WPTest390(WPTest):
         print('[+] Adding excerpt...')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
         # styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="postexcerpt"]').get_attribute('style'))
         # # print(styles)
         # if styles.get_style_value('display') != 'none' or styles.get_style_value('display') is None:
@@ -115,7 +123,9 @@ class WPTest390(WPTest):
     # status_text should be one of Published, Draft(default) or Pending Review
     def change_status(self, status_text='Published'):
         print('[+] Changing status')
-        # self.driver.execute_script("window.scrollTo(0, 0)");
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
 
         # If article is private, we cannot change its status
         if self.driver.find_element_by_xpath('//*[@id="post-status-display"]').text == 'Privately Published':
@@ -125,10 +135,7 @@ class WPTest390(WPTest):
         # styles = StyleParser(self.driver.find_element_by_xpath('//*[@id="post-status-select"]')
         #                     .get_attribute('style'))
         # if styles.get_style_value('display') == 'none':
-        if self.driver.find_element_by_xpath('//*[@id="post-status-select"]').is_displayed():
-            self.success = False
-            print('[-] Status panel not displayed')
-            return
+        time.sleep(1)
         self.select_dropdown('//*[@id="post_status"]', status_text)
         self.click_element('//*[@id="post-status-select"]/a[1]')
         if self.wait_for_text_in_page(status_text) is None:
@@ -138,6 +145,10 @@ class WPTest390(WPTest):
     # Change visibility of article
     def change_visibility(self, visibility="public", password=None):
         print('[+] Changing visibility')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
         self.click_element('//*[@id="visibility"]/a')
         if visibility == 'public':
             self.click_element('//*[@id="visibility-radio-public"]')
@@ -178,6 +189,10 @@ class WPTest390(WPTest):
 
     def change_publish_datetime(self, year=None, month=None, day=None, hour=None, minute=None):
         print('[+] Changing publishing datetime')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
         trans_mon_str = ['', '01-Jan', '02-Feb', '03-Mar', '04-Apr', '05-May', '06-Jun', '07-Jul', '08-Aug', '09-Sep',
                          '10-Oct', '11-Nov', '12-Dec']
         self.click_element('//*[@id="misc-publishing-actions"]/div[3]/a')
@@ -206,6 +221,10 @@ class WPTest390(WPTest):
 
     def add_tags(self, tag_list):
         print('[+] Adding tags')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
         if len(tag_list) == 0:
             print('[!] No tag provided')
             return
@@ -230,6 +249,10 @@ class WPTest390(WPTest):
 
     def set_feature_image_by_uploading(self, image_path):
         print('[+] Selecting feature image...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
         self.click_element('//*[@id="set-post-thumbnail"]')
 
         self.click_element('//*[@id="__wp-uploader-id-0"]/div[3]/div/a[1]')
@@ -238,7 +261,7 @@ class WPTest390(WPTest):
                                image_path)
 
         if self.wait_for_text_in_page("Edit Image"):
-            self.driver.save_screenshot("./1.png")
+            time.sleep(1)
             self.click_element('//*[@id="__wp-uploader-id-0"]/div[5]/div/div[2]/a') # Can be improved by class name
             if self.wait_for_text_in_page('Remove featured image'):
                 print('[+] Setting feature image finished')
@@ -251,6 +274,9 @@ class WPTest390(WPTest):
 
     def set_traceback(self, link):
         print('[+] Setting traceback link')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
 
         if self.driver.find_element_by_xpath('//*[@id="trackback_url"]').is_displayed():
             self.fill_textbox('//*[@id="trackback_url"]', link)
@@ -261,6 +287,9 @@ class WPTest390(WPTest):
 
     def add_custom_fields(self, fields):
         print('[*] Adding custom fields...')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
 
         for name in fields.key():
             value = fields[name]
@@ -278,21 +307,79 @@ class WPTest390(WPTest):
         else:
             print('[+] Failed to addi custom fields')
 
+    def change_slug(self, name):
+        print('[+] Changing slug')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
+        self.fill_textbox('//*[@id="post_name"]', name)
+        print('[+] Changing slug finished')
+
+    def change_discussion_state(self, comments=False, ping_status=False):
+        print('[+] Changing discussion state')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
+        current_comment_state = self.checkbox_is_checked('//*[@id="comment_status"]')
+        if current_comment_state != comments:
+            self.click_element('//*[@id="comment_status"]')
+        current_ping_status = self.checkbox_is_checked('//*[@id="ping_status"]')
+        if current_ping_status != ping_status:
+            self.click_element('//*[@id="ping_status"]')
+        if self.success:
+            print('[+] Changing discussion state finished')
+        else:
+            print('[-] Failed to change discussion state')
+
+    # format_name should be one of the standard, aside, image, video, audio, quote, link, gallery
+    def change_format(self, format_name='standard'):
+        print('[+] Changing format')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
+        format_name = format_name.lower()
+        if format_name not in ['standard', 'aside', 'image', 'video', 'audio', 'quote', 'link', 'gallery']:
+            print('[!] Invalid format name %s, using standard instead' % format_name)
+        self.click_element('//*[@id="post-format-'+format_name+'"]')
+        if self.success:
+            print('[+] Changing format finished')
+        else:
+            print('[-] Failed to change format')
+
+    def move_to_trash_post_page(self):
+        print('[+] Moving post to trash')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+
+        self.click_element('//*[@id="delete-action"]/a')
+        if self.wait_for_text_in_page('1 post moved to the Trash.'):
+            print('[+] Moving post to trash finished')
+        else:
+            self.success = False
+            print('[-] Failed to move post to trash')
+
     def new_post_tests(self):
         self.init_new_post() if self.success else None
-        # self.select_category(2) if self.success else None
-        # self.add_title_text('Test') if self.success else None
-        # self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
-        # self.add_excerpt('This is a test') if self.success else None
-        # self.change_status('Pending Review')
-        self.change_visibility('private')
-        self.change_publish_datetime(2017,8,9,1,2)
-        self.add_tags(['test', 'example'])
-        self.set_feature_image_by_uploading(os.path.abspath('./leaf.png'))
-        self.set_traceback('http://localhost/wordpress3_9/?p=1')
-        # self.save_post() if self.success else None
-        # self.preview_post() if self.success else None
-        # self.publish_post() if self.success else None
+        self.select_category(2) if self.success else None
+        self.add_title_text('Test') if self.success else None
+        self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
+        self.add_excerpt('This is a test') if self.success else None
+        self.change_status('Pending Review') if self.success else None
+        self.change_visibility('private') if self.success else None
+        self.change_publish_datetime(2017,8,9,1,2) if self.success else None
+        self.add_tags(['test', 'example']) if self.success else None
+        self.set_feature_image_by_uploading(os.path.abspath('./leaf.png')) if self.success else None
+        self.set_traceback('http://localhost/wordpress3_9/?p=1') if self.success else None
+        self.change_format('image') if self.success else None
+        self.change_slug('another-title') if self.success else None
+        self.change_discussion_state(comments=True, ping_status=False) if self.success else None
+        # self.save_post() if self.success else None if self.success else None
+        self.preview_post() if self.success else None if self.success else None
+        # self.publish_post() if self.success else None if self.success else None
+        # self.move_to_trash_post_page()
         if self.success:
             print('[+] New post test finished')
 
@@ -304,4 +391,4 @@ if __name__ == '__main__':
 
     test.new_post_tests()
 
-    # test.close_all(delay=3)
+    test.close_all(delay=3)
