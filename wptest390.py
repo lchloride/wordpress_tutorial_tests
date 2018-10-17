@@ -1,10 +1,7 @@
-import time, os, errno, argparse, sys, random, string
-import selenium.webdriver as webdriver
-from selenium.common.exceptions import NoSuchElementException, ElementNotVisibleException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
+import os
+import time
+from selenium.webdriver.common.action_chains import ActionChains
 from wptest import WPTest
-from styleparser import StyleParser
 
 
 class WPTest390(WPTest):
@@ -592,6 +589,59 @@ class WPTest390(WPTest):
         if self.success:
             print('[+] Setting tests finished')
 
+    # Category & Tag tests
+
+    def add_category(self, name, slug, description, parent="None", is_tag=False):
+        print('[+] Adding category/tag')
+        if not is_tag:
+            self.get_by_relative_url('wp-admin/edit-tags.php?taxonomy=category')
+        else:
+            self.get_by_relative_url('wp-admin/edit-tags.php?taxonomy=post_tag')
+
+        self.fill_textbox('//*[@id="tag-name"]', name)
+        self.fill_textbox('//*[@id="tag-slug"]', slug)
+        if not is_tag:
+            self.select_dropdown('//*[@id="parent"]', str(parent))
+        self.fill_textbox('//*[@id="tag-description"]', description)
+        self.click_element('//*[@id="submit"]')
+
+        if self.wait_for_text_in_page('A term with the name and slug provided already exists.'):
+            self.success = False
+            print('[-] Cannot create category/tag since a term with the name and slug provided already exists')
+            return
+        else:
+            print('[+] Category/Tag added')
+
+    def quick_edit_category(self, id, new_name, new_slug, is_tag=False):
+        print('[+] Quick Editing category/tag')
+        if not is_tag:
+            self.get_by_relative_url('wp-admin/edit-tags.php?taxonomy=category')
+        else:
+            self.get_by_relative_url('wp-admin/edit-tags.php?taxonomy=post_tag')
+
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="tag-%d"]/td[1]' % id))
+        hover.perform()
+
+        self.click_element('//*[@id="tag-%d"]/td[1]/div[1]/span[2]/a' % id)
+        self.fill_textbox('//*[@name="name"]', new_name)
+        self.fill_textbox('//*[@name="slug"]', new_slug)
+        self.click_element('//*[@class="inline-edit-save submit"]/a[2]')
+        error = self.driver.find_element_by_xpath('//*[@class="inline-edit-save submit"]/span[@class="error"]')
+        if not error.is_displayed():
+            self.success = False
+            print('[-] Failed to update category/tag: %s', error.text)
+        else:
+            print('[+] Category/Tag updated')
+
+    def category_tag_tests(self):
+        print('[*] Starting category/tag tests')
+        # self.add_category('test_name', 'test-slug', 'This is a test category', parent='Test')
+        # self.add_category('test_tag', 'test-tag-slug', 'This is a test tag', is_tag=True)
+        self.quick_edit_category(id=5, new_name='new_name', new_slug='new-slug', is_tag=True)
+        if self.success:
+            print('[+] Category/Tag tests finished')
+
 
 if __name__ == '__main__':
     # Test chrome driver
@@ -602,6 +652,8 @@ if __name__ == '__main__':
 
     # test.theme_tests()
 
-    test.setting_tests()
+    # test.setting_tests()
+
+    test.category_tag_tests()
 
     test.close_all(delay=3)
