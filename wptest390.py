@@ -218,7 +218,6 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Current publishing datetime does not match')
 
-
     def add_tags(self, tag_list):
         print('[+] Adding tags')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
@@ -239,7 +238,7 @@ class WPTest390(WPTest):
         ele = self.driver.find_elements_by_xpath('//*[@id="post_tag"]/div[2]/span')
         updated_tag_list = []
         for e in ele:
-            updated_tag_list.append(e.text[e.text.rfind(' ')+1:])
+            updated_tag_list.append(e.text[e.text.rfind(' ') + 1:])
         for tag in tag_list:
             if tag not in updated_tag_list:
                 self.success = False
@@ -262,7 +261,7 @@ class WPTest390(WPTest):
 
         if self.wait_for_text_in_page("Edit Image"):
             time.sleep(1)
-            self.click_element('//*[@id="__wp-uploader-id-0"]/div[5]/div/div[2]/a') # Can be improved by class name
+            self.click_element('//*[@id="__wp-uploader-id-0"]/div[5]/div/div[2]/a')  # Can be improved by class name
             if self.wait_for_text_in_page('Remove featured image'):
                 print('[+] Setting feature image finished')
             else:
@@ -343,7 +342,7 @@ class WPTest390(WPTest):
         format_name = format_name.lower()
         if format_name not in ['standard', 'aside', 'image', 'video', 'audio', 'quote', 'link', 'gallery']:
             print('[!] Invalid format name %s, using standard instead' % format_name)
-        self.click_element('//*[@id="post-format-'+format_name+'"]')
+        self.click_element('//*[@id="post-format-' + format_name + '"]')
         if self.success:
             print('[+] Changing format finished')
         else:
@@ -365,11 +364,12 @@ class WPTest390(WPTest):
         self.init_new_post() if self.success else None
         self.select_category(2) if self.success else None
         self.add_title_text('Test') if self.success else None
-        self.add_body_text('<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
+        self.add_body_text(
+            '<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
         self.add_excerpt('This is a test') if self.success else None
         self.change_status('Pending Review') if self.success else None
         self.change_visibility('private') if self.success else None
-        self.change_publish_datetime(2017,8,9,1,2) if self.success else None
+        self.change_publish_datetime(2017, 8, 9, 1, 2) if self.success else None
         self.add_tags(['test', 'example']) if self.success else None
         self.set_feature_image_by_uploading(os.path.abspath('./leaf.png')) if self.success else None
         self.set_traceback('http://localhost/wordpress3_9/?p=1') if self.success else None
@@ -383,12 +383,134 @@ class WPTest390(WPTest):
         if self.success:
             print('[+] New post test finished')
 
+    def init_theme_tests(self):
+        print('[*] Starting theme tests...')
+        self.driver.get(self.url_with_base('wp-admin/themes.php'))
+        # Must logged in to post new article
+        assert self.driver.get_cookie('wp_login') != 'success', \
+            '[-] Cannot initialize theme page: login failed'
+        if self.success:
+            self.driver.add_cookie({'name': 'wp_theme_init', 'value': 'success'})
+            print('[+] Test initialization finished')
+
+    def upload_theme(self, theme_path):
+        print('[+] Uploading theme')
+        self.driver.get(self.url_with_base('wp-admin/theme-install.php'))
+        if not self.wait_for_text_in_page('Upload Theme'):
+            self.success = False
+            print('[-] Cannot open theme installation page')
+            return
+
+        self.click_element('//*[@class="upload add-new-h2"]')
+
+        self.upload_file_input('//*[@name="themezip"]', theme_path)
+
+        timeout = 10
+        while self.driver.find_element_by_xpath('//*[@id="install-theme-submit"]').get_attribute('disabled'):
+            if timeout <= 0:
+                self.success = False
+                print('[-] Failed to specify file to be upload')
+                return
+            timeout -= 1
+            time.sleep(1)
+
+        self.click_element('//*[@id="install-theme-submit"]')
+
+        if self.wait_for_text_in_page('Theme installed successfully.'):
+            print('[+] Uploading theme finished')
+        else:
+            self.success = False
+            print('[-] Failed to upload theme, provided information:\n %s'
+                  % self.driver.find_element_by_xpath('//*[@id="wpbody-content"]/div[3]'))
+
+    def activate_theme(self, theme_name):
+        print('[+] Activating theme')
+        ele = self.driver.find_element_by_xpath('//*[@aria-describedby="%s-action %s-name"]' % (theme_name, theme_name))
+        if ele is None:
+            self.success = False
+            print('[-] Theme with name %s not found' % theme_name)
+            return
+
+        ele.find_element_by_xpath('//*/a[@class="button button-primary activate"]').click()
+
+        if self.wait_for_text_in_page('New theme activated'):
+            print('[+] Activating theme finished')
+        else:
+            self.success = False
+            print('[-] Failed to activate theme')
+
+    def change_background_color_theme_twentyten(self, color_code):
+        print('[+] Changing background color')
+        self.driver.get(self.url_with_base('wp-admin/customize.php'))
+
+        if not self.wait_for_text_in_page('You are previewing'):
+            self.success = False
+            print('[-] Failed to load customization page')
+            return
+
+        self.click_element('//*[@id="accordion-section-colors"]')
+
+        if not self.wait_for_text_in_page('Background Color'):
+            self.success = False
+            print('[-] Failed to show control panel of color')
+            return
+
+        ele = self.driver.find_element_by_xpath(
+            '//*[@id="customize-control-background_color"]/label/div/div/a')
+        # //*[@id="customize-control-background_color"]/label/div/div/a
+        # //*[@id="customize-control-background_color"]/*/[@title="Select Color"]
+
+        if ele is None:
+            self.success = False
+            print('[-] Failed to find color picker')
+            return
+
+        ele.click()
+
+        timeout = 10
+        while 'wp-picker-open' not in ele.get_attribute('class'):
+            if timeout <= 0:
+                self.success = False
+                print('[-] Failed to load color picker')
+                return
+            timeout -= 1
+
+        self.fill_textbox('//*[@id="customize-control-background_color"]/label/div/div/span/input[1]',
+                          color_code)
+
+        time.sleep(1)
+
+        if 'iris-error' in self.driver.find_element_by_xpath(
+                '//*[@id="customize-control-background_color"]/label/div/div/span/input[1]').get_attribute('class'):
+            self.success = False
+            print('[-] Invalid color code format')
+            return
+
+        self.click_element('//*[@id="save"]')
+
+        timeout = 10
+        while self.driver.find_element_by_xpath('//*[@id="save"]').get_attribute('value') != 'Saved':
+            if timeout <= 10:
+                self.success = False
+                print('[-] Failed to save changes')
+                return
+            timeout -= 1
+
+        print('[+] Changing background color finished')
+
+    def theme_tests(self):
+        self.init_theme_tests()
+        # self.upload_theme(os.path.abspath('./twentyten.2.5.zip'))
+        # self.activate_theme('twentyten')
+        self.change_background_color_theme_twentyten('#d8d8d8')
 
 if __name__ == '__main__':
     # Test chrome driver
     test = WPTest390()
     test.login('admin', 'Admin123456')
 
-    test.new_post_tests()
+    # test.new_post_tests()
+
+    test.theme_tests()
 
     test.close_all(delay=3)
