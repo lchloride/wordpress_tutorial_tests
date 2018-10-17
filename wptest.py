@@ -28,6 +28,9 @@ class WPTest:
         self.driver.delete_cookie('test_name')
         self.driver.add_cookie({'name': 'test_name', 'value': test_name})
 
+    def get_by_relative_url(self, url):
+        self.driver.get(self.url_with_base(url))
+
     def click_element(self, xpath_selector):
         if not self.success:
             return

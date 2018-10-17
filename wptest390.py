@@ -30,7 +30,7 @@ class WPTest390(WPTest):
 
     def init_new_post(self):
         print('[*] Starting new post test...')
-        self.driver.get(self.url_with_base('wp-admin/post-new.php'))
+        self.get_by_relative_url('wp-admin/post-new.php')
         # Must logged in to post new article
         assert self.driver.get_cookie('wp_login') != 'success', '[-] Cannot initialize new post page: login failed'
         self.click_element('//*[@id="show-settings-link"]')
@@ -385,7 +385,7 @@ class WPTest390(WPTest):
 
     def init_theme_tests(self):
         print('[*] Starting theme tests...')
-        self.driver.get(self.url_with_base('wp-admin/themes.php'))
+        self.get_by_relative_url('wp-admin/themes.php')
         # Must logged in to post new article
         assert self.driver.get_cookie('wp_login') != 'success', \
             '[-] Cannot initialize theme page: login failed'
@@ -395,7 +395,7 @@ class WPTest390(WPTest):
 
     def upload_theme(self, theme_path):
         print('[+] Uploading theme')
-        self.driver.get(self.url_with_base('wp-admin/theme-install.php'))
+        self.get_by_relative_url('wp-admin/theme-install.php')
         if not self.wait_for_text_in_page('Upload Theme'):
             self.success = False
             print('[-] Cannot open theme installation page')
@@ -441,7 +441,7 @@ class WPTest390(WPTest):
 
     def change_background_color_theme_twentyten(self, color_code):
         print('[+] Changing background color')
-        self.driver.get(self.url_with_base('wp-admin/customize.php'))
+        self.get_by_relative_url('wp-admin/customize.php')
 
         if not self.wait_for_text_in_page('You are previewing'):
             self.success = False
@@ -504,6 +504,95 @@ class WPTest390(WPTest):
         # self.activate_theme('twentyten')
         self.change_background_color_theme_twentyten('#d8d8d8')
 
+    def change_site_title(self, title):
+        print('[+} Changing site title')
+        self.get_by_relative_url('wp-admin/options-general.php')
+        self.fill_textbox('//*[@id="blogname"]', title)
+        self.click_element('//*[@id="submit"]')
+        if self.wait_for_text_in_page('Settings saved.'):
+            print('[+] Site title changed')
+        else:
+            self.success = False
+            print('[-] Failed to change site title')
+
+    def change_default_post_format(self, new_format='Standard'):
+        print('[+] Changing default post format')
+        self.get_by_relative_url('wp-admin/options-writing.php')
+        self.select_dropdown('//*[@id="default_post_format"]', new_format)
+        self.click_element('//*[@id="submit"]')
+        if self.wait_for_text_in_page('Settings saved.'):
+            print('[+] Default post format changed')
+        else:
+            self.success = False
+            print('[-] Failed to change default post format')
+
+    def change_posts_per_page(self, count):
+        print('[+] Changing posts per page')
+        self.get_by_relative_url('wp-admin/options-reading.php')
+        self.fill_textbox('//*[@id="posts_per_page"]', count)
+        self.click_element('//*[@id="submit"]')
+        if self.wait_for_text_in_page('Settings saved.'):
+            print('[+] Posts per page changed')
+        else:
+            self.success = False
+            print('[-] Failed to change posts per page')
+
+    # Level is an integer from 2 to 10
+    def change_nested_comment_level(self, level):
+        print('[+] Changing nested comment level')
+        self.get_by_relative_url('wp-admin/options-discussion.php')
+        if not self.checkbox_is_checked('//*[@id="thread_comments"]'):
+            self.click_element('//*[@id="thread_comments"]')
+        if not 2 <= level <= 10 or type(level) != int:
+            self.success = False
+            print('[-] Level should be an integer from 2 to 10')
+            return
+
+        self.select_dropdown('//*[@id="thread_comments_depth"]', str(level))
+        self.click_element('//*[@id="submit"]')
+        if self.wait_for_text_in_page('Settings saved.'):
+            print('[+] Nested comment level changed')
+        else:
+            self.success = False
+            print('[-] Failed to change nested comment level')
+
+    def change_media_medium_size(self, max_width, max_height):
+        print('[+] Changing media medium size')
+        self.get_by_relative_url('wp-admin/options-media.php')
+        self.fill_textbox('//*[@id="medium_size_w"]', max_width)
+        self.fill_textbox('//*[@id="medium_size_h"]', max_height)
+        self.click_element('//*[@id="submit"]')
+        if self.wait_for_text_in_page('Settings saved.'):
+            print('[+] Nested comment level changed')
+        else:
+            self.success = False
+            print('[-] Failed to change nested comment level')
+
+    def change_permalink_category_base(self, base):
+        print('[+] Changing permalink category base')
+        self.get_by_relative_url('wp-admin/options-permalink.php')
+        self.fill_textbox('//*[@id="category_base"]', base)
+        self.click_element('//*[@id="submit"]')
+        if self.wait_for_text_in_page('Permalink structure updated.'):
+            print('[+] Category base of permalink changed')
+        else:
+            self.success = False
+            print('[-] Failed to change category base of permalink')
+
+    def setting_tests(self):
+        print('[*] Starting setting tests...')
+        assert self.driver.get_cookie('wp_login') != 'success', '[-] Cannot initialize setting page: login failed'
+
+        self.change_site_title('wp3_9_test') if self.success else None
+        self.change_default_post_format('Image') if self.success else None
+        self.change_posts_per_page(15) if self.success else None
+        self.change_nested_comment_level(6) if self.success else None
+        self.change_media_medium_size(400, 400) if self.success else None
+        self.change_permalink_category_base('category') if self.success else None
+        if self.success:
+            print('[+] Setting tests finished')
+
+
 if __name__ == '__main__':
     # Test chrome driver
     test = WPTest390()
@@ -511,6 +600,8 @@ if __name__ == '__main__':
 
     # test.new_post_tests()
 
-    test.theme_tests()
+    # test.theme_tests()
+
+    test.setting_tests()
 
     test.close_all(delay=3)
