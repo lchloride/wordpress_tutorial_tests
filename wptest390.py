@@ -422,6 +422,7 @@ class WPTest390(WPTest):
 
     def activate_theme(self, theme_name):
         print('[+] Activating theme')
+        self.get_by_relative_url('wp-admin/themes.php')
         ele = self.driver.find_element_by_xpath('//*[@aria-describedby="%s-action %s-name"]' % (theme_name, theme_name))
         if ele is None:
             self.success = False
@@ -452,8 +453,12 @@ class WPTest390(WPTest):
             print('[-] Failed to show control panel of color')
             return
 
+        self.driver.save_screenshot('1.png')
+        time.sleep(2)
+
         ele = self.driver.find_element_by_xpath(
             '//*[@id="customize-control-background_color"]/label/div/div/a')
+        # //*[@id="customize-control-background_color"]/label/div/div/span/input[1]
         # //*[@id="customize-control-background_color"]/label/div/div/a
         # //*[@id="customize-control-background_color"]/*/[@title="Select Color"]
 
@@ -497,8 +502,8 @@ class WPTest390(WPTest):
 
     def theme_tests(self):
         self.init_theme_tests()
-        # self.upload_theme(os.path.abspath('./twentyten.2.5.zip'))
-        # self.activate_theme('twentyten')
+        self.upload_theme(os.path.abspath('./twentyten.2.5.zip'))
+        self.activate_theme('twentyten')
         self.change_background_color_theme_twentyten('#d8d8d8')
 
     def change_site_title(self, title):
@@ -605,7 +610,8 @@ class WPTest390(WPTest):
         self.fill_textbox('//*[@id="tag-description"]', description)
         self.click_element('//*[@id="submit"]')
 
-        if self.wait_for_text_in_page('A term with the name and slug provided already exists.'):
+        time.sleep(2)
+        if 'A term with the name and slug provided already exists.' in self.driver.page_source:
             self.success = False
             print('[-] Cannot create category/tag since a term with the name and slug provided already exists')
             return
@@ -636,11 +642,12 @@ class WPTest390(WPTest):
 
     def category_tag_tests(self):
         print('[*] Starting category/tag tests')
-        # self.add_category('test_name', 'test-slug', 'This is a test category', parent='Test')
-        # self.add_category('test_tag', 'test-tag-slug', 'This is a test tag', is_tag=True)
-        self.quick_edit_category(id=5, new_name='new_name', new_slug='new-slug', is_tag=True)
+        self.add_category('test_name', 'test-slug', 'This is a test category', parent='Test')
+        self.add_category('test_tag', 'test-tag-slug', 'This is a test tag', is_tag=True)
+        self.quick_edit_category(id=4, new_name='new_name', new_slug='new-slug', is_tag=True)
         if self.success:
             print('[+] Category/Tag tests finished')
+
 
 
 if __name__ == '__main__':
