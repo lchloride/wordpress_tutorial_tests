@@ -687,6 +687,7 @@ class WPTest390(WPTest):
         print('[+] Unapprove comment')
         assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
 
+        # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
@@ -702,11 +703,68 @@ class WPTest390(WPTest):
         else:
             print('[-] Failed to unapprove this comment')
 
+    def reply_comment(self, comment_id, reply_content):
+        print('[+] Replying comment')
+        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="reply hide-if-no-js"]' % comment_id
+        if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
+            self.click_element(ele_xpath + '/a')
+        else:
+            self.success = False
+            print('[-] Cannot find reply link')
+            return
+
+        self.fill_textbox('//*[@id="replycontent"]', reply_content)
+
+        self.click_element('//*[@id="replybtn"]')
+
+        if self.success:
+            print('[+] Replying comment finished')
+        else:
+            print('[-] Failed to replying comment')
+
+    def quick_edit_comment(self, comment_id, new_author=None, new_email=None, new_website=None, new_content=None):
+        print('[+] Quick Editing comment')
+        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="quickedit hide-if-no-js"]' % comment_id
+        if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
+            self.click_element(ele_xpath + '/a')
+        else:
+            self.success = False
+            print('[-] Cannot find quick edit link')
+            return
+
+        self.fill_textbox('//*[@id="author"]', new_author) if new_author is not None and len(new_author) > 0 else None
+        self.fill_textbox('//*[@id="author-email"]', new_email) if new_email is not None and len(new_email) > 0 else None
+        self.fill_textbox('//*[@id="author-url"]', new_website) if new_website is not None and len(new_website) > 0 else None
+        self.fill_textbox('//*[@id="replycontent"]', new_content) if new_content is not None and len(new_content) > 0 else None
+
+        self.click_element('//*[@id="replysubmit"]/a[1]')
+
+        if self.success:
+            print('[+] Quick editing comment finished')
+        else:
+            print('[-] Failed to quick edit comment')
+
+
     def comment_tests(self):
         self.get_by_relative_url('wp-admin/edit-comments.php')
         # self.approve_comment(3)
-        self.unapprove_comment(3)
-
+        # self.unapprove_comment(3)
+        # self.reply_comment(3, 'Test comment reply')
+        self.quick_edit_comment(3, new_content='New test comment')
 
 if __name__ == '__main__':
     # Test chrome driver
