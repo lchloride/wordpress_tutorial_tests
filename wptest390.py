@@ -648,6 +648,64 @@ class WPTest390(WPTest):
         if self.success:
             print('[+] Category/Tag tests finished')
 
+    def post_new_comment(self, article_url, author, email, website, comment_text):
+        print('[+] Posting new comment to article')
+        self.get_by_relative_url(article_url)
+        if self.wait_for_text_in_page('Logged in as'):
+            # Have already logged in as one user
+            self.fill_textbox('//*[@id="comment"]', comment_text)
+            self.click_element('//*[@id="submit"]')
+        else:
+            self.fill_textbox('//*[@id="author"]', author)
+            self.fill_textbox('//*[@id="email"]', email)
+            self.fill_textbox('//*[@id="url"]', website) if website is not None and len(website) > 0 else None
+            self.fill_textbox('//*[@id="comment"]', comment_text)
+            self.click_element('//*[@id="submit"]')
+        if self.success:
+            print('[+] New comment approved')
+
+    def approve_comment(self, comment_id):
+        print('[+] Approve comment')
+        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="approve"]' % comment_id
+        if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
+            self.click_element(ele_xpath + '/a')
+        else:
+            print('[!] This comment has been approved')
+
+        if self.success:
+            print('[+] Approving comment finished')
+        else:
+            print('[-] Failed to approve this comment')
+
+    def unapprove_comment(self, comment_id):
+        print('[+] Unapprove comment')
+        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="unapprove"]' % comment_id
+        if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
+            self.click_element(ele_xpath + '/a')
+        else:
+            print('[!] This comment has been approved')
+
+        if self.success:
+            print('[+] Unapproving comment finished')
+        else:
+            print('[-] Failed to unapprove this comment')
+
+    def comment_tests(self):
+        self.get_by_relative_url('wp-admin/edit-comments.php')
+        # self.approve_comment(3)
+        self.unapprove_comment(3)
 
 
 if __name__ == '__main__':
@@ -661,6 +719,8 @@ if __name__ == '__main__':
 
     # test.setting_tests()
 
-    test.category_tag_tests()
+    # test.category_tag_tests()
+
+    test.comment_tests()
 
     test.close_all(delay=3)
