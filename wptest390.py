@@ -747,9 +747,12 @@ class WPTest390(WPTest):
             return
 
         self.fill_textbox('//*[@id="author"]', new_author) if new_author is not None and len(new_author) > 0 else None
-        self.fill_textbox('//*[@id="author-email"]', new_email) if new_email is not None and len(new_email) > 0 else None
-        self.fill_textbox('//*[@id="author-url"]', new_website) if new_website is not None and len(new_website) > 0 else None
-        self.fill_textbox('//*[@id="replycontent"]', new_content) if new_content is not None and len(new_content) > 0 else None
+        self.fill_textbox('//*[@id="author-email"]', new_email) if new_email is not None and len(
+            new_email) > 0 else None
+        self.fill_textbox('//*[@id="author-url"]', new_website) if new_website is not None and len(
+            new_website) > 0 else None
+        self.fill_textbox('//*[@id="replycontent"]', new_content) if new_content is not None and len(
+            new_content) > 0 else None
 
         self.click_element('//*[@id="replysubmit"]/a[1]')
 
@@ -758,13 +761,121 @@ class WPTest390(WPTest):
         else:
             print('[-] Failed to quick edit comment')
 
+    def spam_comment(self, comment_id):
+        print('[+] Marking comment as spam')
+        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="spam"]' % comment_id
+        if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
+            self.click_element(ele_xpath + '/a')
+        else:
+            self.success = False
+            print('[-] Cannot find spam link')
+            return
+
+        if self.driver.find_element_by_xpath('//*[@id="undo-%d"]' % comment_id):
+            print('[+] Marking comment as spam finished')
+        else:
+            print('[-] Failed to mark comment as spam')
+
+    def move_comment_to_trash(self, comment_id):
+        print('[+] Moving comment to trash')
+        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="trash"]' % comment_id
+        if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
+            self.click_element(ele_xpath + '/a')
+        else:
+            self.success = False
+            print('[-] Cannot find trash link')
+            return
+
+        if self.driver.find_element_by_xpath('//*[@id="undo-%d"]' % comment_id):
+            print('[+] Moving comment to trash finished')
+        else:
+            print('[-] Failed to move comment to trash')
+
+    # new_status should be one of the following: None(Not change), 'approved', 'pending', 'spam'.
+    def edit_comment(self, comment_id, new_author=None, new_email=None, new_url=None, new_content=None, new_status=None,
+                     year=None, month=None, day=None, hour=None, minute=None):
+        print('[+] Editing comment')
+
+        self.get_by_relative_url('wp-admin/comment.php?action=editcomment&c=%d' % comment_id)
+
+        self.fill_textbox('//*[@id="name"]', new_author) if new_author is not None and len(new_author) > 0 else None
+        self.fill_textbox('//*[@id="email"]', new_email) if new_email is not None and len(new_email) > 0 else None
+        self.fill_textbox('//*[@id="newcomment_author_url"]', new_url) if new_url is not None and len(new_url) > 0 else None
+        self.fill_textbox('//*[@id="content"]', new_content) if new_content is not None and len(new_content) > 0 else None
+
+        self.to_page_top()
+
+        if new_status in ['approved', 'spam']:
+            self.click_element('//*[@id="comment-status-radio"]/label[@class="%s"]/input' % new_status)
+        elif new_status == 'pending':
+            self.click_element('//*[@id="comment-status-radio"]/label[@class="waiting"]/input' % new_status)
+        else:
+            print("[!] new_status should be one of the following: None(Not change), 'approved', 'pending', 'spam'.")
+
+        trans_mon_str = ['', '01-Jan', '02-Feb', '03-Mar', '04-Apr', '05-May', '06-Jun', '07-Jul', '08-Aug', '09-Sep',
+                         '10-Oct', '11-Nov', '12-Dec']
+        self.click_element('//*[@id="misc-publishing-actions"]/div[3]/a')
+
+        if year is not None:
+            self.fill_textbox('//*[@id="aa"]', str(year))
+        else:
+            year = self.driver.find_element_by_xpath('//*[@id="aa"]').get_attribute('value')
+        if month is not None:
+            self.select_dropdown('//*[@id="mm"]', trans_mon_str[month])
+        else:
+            month = self.driver.find_element_by_xpath('//*[@id="mm"]').get_attribute('value')
+        if day is not None:
+            self.fill_textbox('//*[@id="jj"]', str(day))
+        else:
+            day = self.driver.find_element_by_xpath('//*[@id="jj"]').get_attribute('value')
+        if hour is not None:
+            self.fill_textbox('//*[@id="hh"]', str(hour))
+        else:
+            hour = self.driver.find_element_by_xpath('//*[@id="hh"]').get_attribute('value')
+        if minute is not None:
+            self.fill_textbox('//*[@id="mn"]', str(minute))
+        else:
+            minute = self.driver.find_element_by_xpath('//*[@id="mn"]').get_attribute('value')
+
+        self.click_element('//*[@id="timestampdiv"]/p/a[1]')
+
+        # Check datetime in format like 09-Sep 04, 2018 @ 14 : 47
+        publishing_datetime = '%s %s, %s @ %s : %s' % (trans_mon_str[int(month)], str(day), str(year), str(hour), str(minute))
+        publishing_datetime = publishing_datetime.replace(' ', '')
+        real_datetime = self.driver.find_element_by_xpath('//*[@id="timestamp"]/b').text.replace(' ', '')
+        if not publishing_datetime == real_datetime:
+            self.success = False
+            print('[-] Current publishing datetime does not match: Wanted: %s, Real: %s'
+                  %(publishing_datetime, real_datetime))
+            return
+
+        self.click_element('//*[@id="save"]')
+
+
 
     def comment_tests(self):
         self.get_by_relative_url('wp-admin/edit-comments.php')
         # self.approve_comment(3)
         # self.unapprove_comment(3)
         # self.reply_comment(3, 'Test comment reply')
-        self.quick_edit_comment(3, new_content='New test comment')
+        # self.quick_edit_comment(3, new_content='New test comment')
+        # self.spam_comment(3)
+        # self.move_comment_to_trash(3)
+        self.edit_comment(3, new_author='New User')
 
 if __name__ == '__main__':
     # Test chrome driver
