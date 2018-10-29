@@ -814,8 +814,10 @@ class WPTest390(WPTest):
 
         self.fill_textbox('//*[@id="name"]', new_author) if new_author is not None and len(new_author) > 0 else None
         self.fill_textbox('//*[@id="email"]', new_email) if new_email is not None and len(new_email) > 0 else None
-        self.fill_textbox('//*[@id="newcomment_author_url"]', new_url) if new_url is not None and len(new_url) > 0 else None
-        self.fill_textbox('//*[@id="content"]', new_content) if new_content is not None and len(new_content) > 0 else None
+        self.fill_textbox('//*[@id="newcomment_author_url"]', new_url) if new_url is not None and len(
+            new_url) > 0 else None
+        self.fill_textbox('//*[@id="content"]', new_content) if new_content is not None and len(
+            new_content) > 0 else None
 
         self.to_page_top()
 
@@ -854,13 +856,14 @@ class WPTest390(WPTest):
         self.click_element('//*[@id="timestampdiv"]/p/a[1]')
 
         # Check datetime in format like 09-Sep 04, 2018 @ 14 : 47
-        publishing_datetime = '%s %s, %s @ %s : %s' % (trans_mon_str[int(month)], str(day), str(year), str(hour), str(minute))
+        publishing_datetime = '%s %s, %s @ %s : %s' % (
+            trans_mon_str[int(month)], str(day), str(year), str(hour), str(minute))
         publishing_datetime = publishing_datetime.replace(' ', '')
         real_datetime = self.driver.find_element_by_xpath('//*[@id="timestamp"]/b').text.replace(' ', '')
         if not publishing_datetime == real_datetime:
             self.success = False
             print('[-] Current publishing datetime does not match: Wanted: %s, Real: %s'
-                  %(publishing_datetime, real_datetime))
+                  % (publishing_datetime, real_datetime))
             return
 
         self.click_element('//*[@id="save"]')
@@ -893,6 +896,74 @@ class WPTest390(WPTest):
         else:
             print('[-] Failed to export')
 
+    def add_user(self, username, email, password, first_name=None, last_name=None, website=None, send_password=False,
+                 role=None):
+        print('[+] Adding user')
+        self.get_by_relative_url('wp-admin/user-new.php')
+
+        if username is None or len(username) == 0 or \
+                email is None or len(email) == 0 or \
+                password is None or len(password) == 0:
+            self.success = False
+            print('[-] Invalid parameter(s)')
+            return
+
+        self.fill_textbox('//*[@id="user_login"]', username)
+        self.fill_textbox('//*[@id="email"]', email)
+        self.fill_textbox('//*[@id="first_name"]', first_name) if first_name is not None and len(
+            first_name) > 0 else None
+        self.fill_textbox('//*[@id="last_name"]', last_name) if last_name is not None and len(last_name) > 0 else None
+        self.fill_textbox('//*[@id="url"]', website) if website is not None and len(website) > 0 else None
+        self.fill_textbox('//*[@id="pass1"]', password)
+        self.fill_textbox('//*[@id="pass2"]', password)
+        self.click_element('//*[@id="send_password"]') if send_password else None
+        self.select_dropdown('//*[@id="role"]', 'Subscriber' if role is None else role)
+
+        self.click_element('//*[@id="createusersub"]')
+
+        if self.wait_for_text_in_page('New user created.', timeout=5):
+            print('[+] Adding user finished')
+        elif 'ERROR' in self.driver.page_source:
+            self.success = False
+            print('[-] Failed to add user: %s' % self.driver.find_element_by_xpath(
+                '//*[@id="wpbody-content"]/div[4]/div[1]').text)
+            return
+        else:
+            self.success = False
+            print('[-] Failed to add user')
+
+    def delete_user(self, user_id, reassign_user=None):
+        print('[+] Deleting user')
+        self.get_by_relative_url('wp-admin/users.php')
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="user-%d"]' % user_id))
+        hover.perform()
+
+        self.click_element('//*[@id="user-%d"]//span[@class="delete"]/a' % user_id)
+
+        if self.wait_for_text_in_page('Delete Users'):
+            if reassign_user is None:
+                self.click_element('//*[@id="delete_option0"]')
+            else:
+                self.select_dropdown('//*[@id="reassign_user"]', reassign_user)
+            self.click_element('//*[@id="submit"]')
+
+            if self.wait_for_text_in_page('User deleted.'):
+                print('[+] Deletion finished')
+            else:
+                self.success = False
+                print('[-] Failed to delete user')
+        else:
+            self.success = False
+            print('[-] Failed to open deletion page')
+
+    def user_test(self):
+        # self.add_user(username='new_user', email='new_user@example.com', password='123456')
+        self.delete_user(4)
+
+
 if __name__ == '__main__':
     # Test chrome driver
     test = WPTest390()
@@ -908,6 +979,8 @@ if __name__ == '__main__':
 
     # test.comment_tests()
 
-    test.export('all')
+    # test.export('all')
+
+    test.user_test()
 
     test.close_all(delay=3)

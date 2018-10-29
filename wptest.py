@@ -102,6 +102,8 @@ class WPTest:
             print(e)
 
     def check_exists_and_visible_by_xpath(self, xpath_selector):
+        if not self.success:
+            return
         try:
             return self.driver.find_element_by_xpath(xpath_selector).is_displayed()
         except NoSuchElementException:
@@ -111,8 +113,10 @@ class WPTest:
     def to_page_top(self):
         self.driver.execute_script("window.scrollTo(0, 0)")
 
-    def wait_for_element_become_visible(self, xpath_selector):
-        timeout = 20
+    def wait_for_element_become_visible(self, xpath_selector, timeout=20):
+        if not self.success:
+            return
+        # timeout = 20
         while not self.check_exists_and_visible_by_xpath(xpath_selector):
             print("[+] Waiting for %s to become visible" % xpath_selector)
             # Wait for login pop up to load via ajax
@@ -123,8 +127,10 @@ class WPTest:
                 print("[-] Timed out %s" % xpath_selector)
                 return None
 
-    def wait_for_text_in_page(self, text):
-        timeout = 20
+    def wait_for_text_in_page(self, text, timeout=20):
+        if not self.success:
+            return
+        # timeout = 20
         while not text in self.driver.page_source:
             print("[+] Waiting for text: %s to load in page" % text)
             time.sleep(1)
