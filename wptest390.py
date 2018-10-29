@@ -865,7 +865,10 @@ class WPTest390(WPTest):
 
         self.click_element('//*[@id="save"]')
 
-
+        if self.success:
+            print('[+] Editing comment finished')
+        else:
+            print('[-] Failed to edit comment')
 
     def comment_tests(self):
         self.get_by_relative_url('wp-admin/edit-comments.php')
@@ -875,7 +878,20 @@ class WPTest390(WPTest):
         # self.quick_edit_comment(3, new_content='New test comment')
         # self.spam_comment(3)
         # self.move_comment_to_trash(3)
-        self.edit_comment(3, new_author='New User')
+        # Note: edit_comment() will change the URL of current page
+        self.edit_comment(3, new_author='New User', new_status='spam')
+
+    # By default, export_content should be one of the following: 'all', 'posts', 'pages'.
+    def export(self, export_content=None):
+        print('[+] Exporting contents...')
+        self.get_by_relative_url('wp-admin/export.php')
+        export_content = 'all' if export_content is None else export_content
+        self.click_element('//*[@id="export-filters"]//input[@value="%s"]' % export_content)
+        self.click_element('//*[@id="submit"]')
+        if self.success:
+            print('[+] Exporting finished')
+        else:
+            print('[-] Failed to export')
 
 if __name__ == '__main__':
     # Test chrome driver
@@ -890,6 +906,8 @@ if __name__ == '__main__':
 
     # test.category_tag_tests()
 
-    test.comment_tests()
+    # test.comment_tests()
+
+    test.export('all')
 
     test.close_all(delay=3)
