@@ -687,6 +687,8 @@ class WPTest390(WPTest):
         print('[+] Unapprove comment')
         assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
 
+        self.to_page_top()
+
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
@@ -877,12 +879,12 @@ class WPTest390(WPTest):
         self.get_by_relative_url('wp-admin/edit-comments.php')
         # self.approve_comment(3)
         # self.unapprove_comment(3)
-        # self.reply_comment(3, 'Test comment reply')
+        self.reply_comment(3, 'Test comment reply')
         # self.quick_edit_comment(3, new_content='New test comment')
         # self.spam_comment(3)
         # self.move_comment_to_trash(3)
         # Note: edit_comment() will change the URL of current page
-        self.edit_comment(3, new_author='New User', new_status='spam')
+        # self.edit_comment(3, new_author='New User', new_status='spam')
 
     # By default, export_content should be one of the following: 'all', 'posts', 'pages'.
     def export(self, export_content=None):
@@ -959,9 +961,100 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Failed to open deletion page')
 
+    def edit_user_color_scheme(self, scheme_idx=0):
+        print('[+] Editing user color scheme')
+        self.get_by_relative_url('wp-admin/profile.php')
+        scheme_idx2id = ['admin_color_fresh', 'admin_color_light', 'admin_color_blue', 'admin_color_coffee',
+                         'admin_color_ectoplasm', 'admin_color_midnight', 'admin_color_ocean', 'admin_color_sunrise']
+        if scheme_idx < 0 or scheme_idx >= len(scheme_idx2id):
+            self.success = False
+            print('[-] Invalid scheme index')
+            return
+        self.click_element('//*[@id="%s"]' % scheme_idx2id[scheme_idx])
+
+        self.click_element('//*[@id="submit"]')
+
+        if self.wait_for_text_in_page('Profile updated.'):
+            print('[+] Editing user color scheme finished')
+        else:
+            self.success = False
+            print('[-] Failed to edit user color scheme')
+
     def user_test(self):
-        # self.add_user(username='new_user', email='new_user@example.com', password='123456')
-        self.delete_user(4)
+        # self.add_user(username='new_user1', email='new_user1@example.com', password='123456')
+        # self.delete_user(5)
+        self.edit_user_color_scheme(1)
+
+    def upload_media(self, media_path):
+        print('[+] Uploading media')
+        self.get_by_relative_url('wp-admin/media-new.php')
+        self.upload_file_input('//*[@id="file-form"]//div[@class="moxie-shim moxie-shim-html5"]/input', media_path)
+
+        uploaded_media_list = self.driver.find_elements_by_xpath('//*[@id="media-items"]/div')
+        uploaded_media_list.reverse()
+
+        # self.driver.save_screenshot('1.png')
+        if self.wait_for_element_become_visible('//*[@id="media-items"]/div[1]/a'):
+            is_uploaded = False
+
+            for media_item in uploaded_media_list:
+                if media_item.find_element_by_css_selector('.title').text in media_path:
+                    is_uploaded = True
+                    break
+
+            if self.success and is_uploaded:
+                print('[+] Uploading media finished')
+            else:
+                self.success = False
+                print('[-] Failed to upload media')
+        else:
+            self.success = False
+            print('[-] Failed to upload media')
+
+    def edit_media_prop(self, media_id, new_title=None, new_caption=None, new_alt_text=None, new_desc=None):
+        print('[+] Editing media properties')
+        self.get_by_relative_url('wp-admin/post.php?post=%d&action=edit' % media_id)
+
+        if self.wait_for_text_in_page('Edit Media'):
+            self.fill_textbox('//*[@id="title"]', new_title) if new_title is not None and len(new_title) > 0 else None
+            self.fill_textbox('//*[@id="attachment_caption"]', new_caption) if new_caption is not None else None
+            self.fill_textbox('//*[@id="attachment_alt"]', new_alt_text) if new_alt_text is not None else None
+            self.fill_textbox('//*[@id="attachment_content"]', new_desc) if new_desc is not None else None
+            self.click_element('//*[@id="publish"]')
+            if self.wait_for_text_in_page('Media attachment updated.'):
+                print('[+] Editing media properties finished')
+            else:
+                self.success = False
+                print('[-] Failed to edit media properties')
+        else:
+            self.success = False
+            print('[-] Failed to open editing media page')
+
+    def delete_media(self, media_id):
+        print('[+] Deleting media')
+        self.get_by_relative_url('wp-admin/upload.php')
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="post-%d"]' % media_id))
+        hover.perform()
+
+        self.click_element('//*[@id="post-%d"]/td[@class="title column-title"]/div/span[@class="delete"]' % media_id)
+
+        # Handle confirmation popup
+        alert_popup = self.driver.switch_to.alert
+        alert_popup.accept()
+
+        if self.wait_for_text_in_page('Media attachment permanently deleted.'):
+            print('[+] Media deletion finished')
+        else:
+            self.success = False
+            print('[-] Failed to delete media')
+
+    def media_test(self):
+        # self.upload_media(os.path.abspath('./apple.jpg'))
+        self.edit_media_prop(172, new_caption='Apple')
+        self.delete_media(170)
 
 
 if __name__ == '__main__':
@@ -981,6 +1074,8 @@ if __name__ == '__main__':
 
     # test.export('all')
 
-    test.user_test()
+    # test.user_test()
+
+    test.media_test()
 
     test.close_all(delay=3)

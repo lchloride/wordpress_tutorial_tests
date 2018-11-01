@@ -103,7 +103,7 @@ class WPTest:
 
     def check_exists_and_visible_by_xpath(self, xpath_selector):
         if not self.success:
-            return
+            return False
         try:
             return self.driver.find_element_by_xpath(xpath_selector).is_displayed()
         except NoSuchElementException:
@@ -115,7 +115,7 @@ class WPTest:
 
     def wait_for_element_become_visible(self, xpath_selector, timeout=20):
         if not self.success:
-            return
+            return None
         # timeout = 20
         while not self.check_exists_and_visible_by_xpath(xpath_selector):
             print("[+] Waiting for %s to become visible" % xpath_selector)
@@ -125,11 +125,12 @@ class WPTest:
             if timeout == 0:
                 self.success = False
                 print("[-] Timed out %s" % xpath_selector)
-                return None
+                return False
+        return True
 
     def wait_for_text_in_page(self, text, timeout=20):
         if not self.success:
-            return
+            return None
         # timeout = 20
         while not text in self.driver.page_source:
             print("[+] Waiting for text: %s to load in page" % text)
@@ -138,7 +139,7 @@ class WPTest:
             if timeout == 0:
                 self.success = False
                 print("[-] Timed out %s" % text)
-                return None
+                return False
         return True
 
     # This method would provide common login method and write related cookies
