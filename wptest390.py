@@ -993,23 +993,30 @@ class WPTest390(WPTest):
         uploaded_media_list = self.driver.find_elements_by_xpath('//*[@id="media-items"]/div')
         uploaded_media_list.reverse()
 
+        media_id = None
+
         # self.driver.save_screenshot('1.png')
-        if self.wait_for_element_become_visible('//*[@id="media-items"]/div[1]/a'):
+        if self.wait_for_element_become_visible('//*[@id="media-items"]/div[last()]/a'):
             is_uploaded = False
 
             for media_item in uploaded_media_list:
                 if media_item.find_element_by_css_selector('.title').text in media_path:
+                    media_link = media_item.find_element_by_css_selector('.edit-attachment').get_attribute('href')
+                    media_id = int(media_link[media_link.find('post=')+5:media_link.rfind('&action')])
                     is_uploaded = True
                     break
 
             if self.success and is_uploaded:
                 print('[+] Uploading media finished')
+
             else:
                 self.success = False
                 print('[-] Failed to upload media')
         else:
             self.success = False
             print('[-] Failed to upload media')
+
+        return media_id
 
     def edit_media_prop(self, media_id, new_title=None, new_caption=None, new_alt_text=None, new_desc=None):
         print('[+] Editing media properties')
@@ -1052,9 +1059,9 @@ class WPTest390(WPTest):
             print('[-] Failed to delete media')
 
     def media_test(self):
-        # self.upload_media(os.path.abspath('./apple.jpg'))
-        self.edit_media_prop(172, new_caption='Apple')
-        self.delete_media(170)
+        media_id = self.upload_media(os.path.abspath('./apple.jpg'))
+        self.edit_media_prop(media_id, new_caption='New Apple') if media_id is not None else None
+        self.delete_media(media_id) if media_id is not None else None
 
 
 if __name__ == '__main__':
