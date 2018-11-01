@@ -908,7 +908,7 @@ class WPTest390(WPTest):
                 password is None or len(password) == 0:
             self.success = False
             print('[-] Invalid parameter(s)')
-            return
+            return None
 
         self.fill_textbox('//*[@id="user_login"]', username)
         self.fill_textbox('//*[@id="email"]', email)
@@ -923,16 +923,21 @@ class WPTest390(WPTest):
 
         self.click_element('//*[@id="createusersub"]')
 
+        user_id = None
+
         if self.wait_for_text_in_page('New user created.', timeout=5):
             print('[+] Adding user finished')
+            user_link = self.driver.find_element_by_xpath('//*[@id="message"]/p/a').get_attribute('href')
+            user_id = int(user_link[user_link.find('user_id=')+8:user_link.find('&', user_link.find('user_id='))])
         elif 'ERROR' in self.driver.page_source:
             self.success = False
             print('[-] Failed to add user: %s' % self.driver.find_element_by_xpath(
                 '//*[@id="wpbody-content"]/div[4]/div[1]').text)
-            return
         else:
             self.success = False
             print('[-] Failed to add user')
+
+        return user_id
 
     def delete_user(self, user_id, reassign_user=None):
         print('[+] Deleting user')
@@ -961,9 +966,20 @@ class WPTest390(WPTest):
             self.success = False
             print('[-] Failed to open deletion page')
 
-    def edit_user_color_scheme(self, scheme_idx=0):
+    # user_id is None -> change profile of current user; else change profile of specific user
+    def edit_user_color_scheme(self, scheme_idx=0, user_id=None):
         print('[+] Editing user color scheme')
-        self.get_by_relative_url('wp-admin/profile.php')
+        if user_id is None:
+            self.get_by_relative_url('wp-admin/profile.php')
+        else:
+            # Move cursor to the comment block given its id to display operations texts
+            hover = ActionChains(self.driver).move_to_element(
+                self.driver.find_element_by_xpath('//*[@id="user-%d"]' % user_id))
+            hover.perform()
+
+            self.click_element('//*[@id="user-%d"]/td[@class="username column-username"]/div/span[@class="edit"]'
+                               % user_id)
+
         scheme_idx2id = ['admin_color_fresh', 'admin_color_light', 'admin_color_blue', 'admin_color_coffee',
                          'admin_color_ectoplasm', 'admin_color_midnight', 'admin_color_ocean', 'admin_color_sunrise']
         if scheme_idx < 0 or scheme_idx >= len(scheme_idx2id):
@@ -974,16 +990,16 @@ class WPTest390(WPTest):
 
         self.click_element('//*[@id="submit"]')
 
-        if self.wait_for_text_in_page('Profile updated.'):
+        if self.wait_for_text_in_page('updated'):
             print('[+] Editing user color scheme finished')
         else:
             self.success = False
             print('[-] Failed to edit user color scheme')
 
     def user_test(self):
-        # self.add_user(username='new_user1', email='new_user1@example.com', password='123456')
-        # self.delete_user(5)
-        self.edit_user_color_scheme(1)
+        user_id = self.add_user(username='new_user1', email='new_user1@example.com', password='123456')
+        self.edit_user_color_scheme(1, user_id) if self.success else None
+        self.delete_user(user_id) if user_id is not None and self.success else None
 
     def upload_media(self, media_path):
         print('[+] Uploading media')
@@ -1081,8 +1097,8 @@ if __name__ == '__main__':
 
     # test.export('all')
 
-    # test.user_test()
+    test.user_test()
 
-    test.media_test()
+    # test.media_test()
 
     test.close_all(delay=3)
