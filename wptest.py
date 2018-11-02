@@ -201,7 +201,7 @@ class WPTest:
 
     def close_all(self, delay=0):
         handles = self.driver.window_handles
-        print('[*] Find %d window(s), these will be closed after %d seconds...' \
+        print('[*] Find %d window(s), these will be closed after %d seconds...'
               % (len(handles), delay))
         time.sleep(delay)
         for window in handles:
@@ -209,3 +209,6 @@ class WPTest:
             print('[+] Find window with title:', self.driver.title)
             print('[+] Window closed')
             self.driver.close()
+
+    def get_random_text(self, length=6):
+        return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length))

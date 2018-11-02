@@ -1,4 +1,6 @@
 import os
+import random
+import string
 import time
 from selenium.webdriver.common.action_chains import ActionChains
 from wptest import WPTest
@@ -648,25 +650,46 @@ class WPTest390(WPTest):
         if self.success:
             print('[+] Category/Tag tests finished')
 
-    def post_new_comment(self, article_url, author, email, website, comment_text):
+    def post_new_comment(self, relative_article_url, author, email, website, comment_text):
         print('[+] Posting new comment to article')
-        self.get_by_relative_url(article_url)
-        if self.wait_for_text_in_page('Logged in as'):
-            # Have already logged in as one user
-            self.fill_textbox('//*[@id="comment"]', comment_text)
-            self.click_element('//*[@id="submit"]')
+        self.get_by_relative_url(relative_article_url)
+        comment_id = None
+        if self.wait_for_text_in_page('Leave a Reply'):
+            if self.wait_for_text_in_page('Logged in as'):
+                # Have already logged in as one user
+                self.fill_textbox('//*[@id="comment"]', comment_text)
+                self.click_element('//*[@id="submit"]')
+            else:
+                self.fill_textbox('//*[@id="author"]', author)
+                self.fill_textbox('//*[@id="email"]', email)
+                self.fill_textbox('//*[@id="url"]', website) if website is not None and len(website) > 0 else None
+                self.fill_textbox('//*[@id="comment"]', comment_text)
+                self.click_element('//*[@id="submit"]')
+
+            previous_success = self.success
+            if self.wait_for_text_in_page('Duplicate', timeout=5):
+                self.success = False
+                print('[-] Duplicated comment detected.')
+            else:
+                self.success = previous_success
+
+            if self.success:
+                print('[+] New comment posted')
+                comment_link = self.driver.current_url
+                comment_id = int(comment_link[comment_link.find('comment-') + 8:])
+                print(comment_id)
+            else:
+                self.success = False
+                print('[-] Failed to post new comment')
         else:
-            self.fill_textbox('//*[@id="author"]', author)
-            self.fill_textbox('//*[@id="email"]', email)
-            self.fill_textbox('//*[@id="url"]', website) if website is not None and len(website) > 0 else None
-            self.fill_textbox('//*[@id="comment"]', comment_text)
-            self.click_element('//*[@id="submit"]')
-        if self.success:
-            print('[+] New comment approved')
+            self.success = False
+            print('[-] Reply panel not found')
+
+        return comment_id
 
     def approve_comment(self, comment_id):
         print('[+] Approve comment')
-        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+        self.get_by_relative_url('wp-admin/edit-comments.php')
 
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
@@ -685,9 +708,7 @@ class WPTest390(WPTest):
 
     def unapprove_comment(self, comment_id):
         print('[+] Unapprove comment')
-        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
-
-        self.to_page_top()
+        self.get_by_relative_url('wp-admin/edit-comments.php')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
@@ -707,7 +728,7 @@ class WPTest390(WPTest):
 
     def reply_comment(self, comment_id, reply_content):
         print('[+] Replying comment')
-        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+        self.get_by_relative_url('wp-admin/edit-comments.php')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
@@ -733,7 +754,7 @@ class WPTest390(WPTest):
 
     def quick_edit_comment(self, comment_id, new_author=None, new_email=None, new_website=None, new_content=None):
         print('[+] Quick Editing comment')
-        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+        self.get_by_relative_url('wp-admin/edit-comments.php')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
@@ -765,7 +786,7 @@ class WPTest390(WPTest):
 
     def spam_comment(self, comment_id):
         print('[+] Marking comment as spam')
-        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+        self.get_by_relative_url('wp-admin/edit-comments.php')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
@@ -787,7 +808,7 @@ class WPTest390(WPTest):
 
     def move_comment_to_trash(self, comment_id):
         print('[+] Moving comment to trash')
-        assert self.driver.current_url.rfind('edit-comments.php'), '[-] Not in /wp-admin/edit-comments.php page'
+        self.get_by_relative_url('wp-admin/edit-comments.php')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
@@ -875,16 +896,57 @@ class WPTest390(WPTest):
         else:
             print('[-] Failed to edit comment')
 
+    def delete_comment(self, comment_id):
+        print('[+] Deleting comment permanently')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=trash')
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        self.click_element(
+            '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[2]/a' % comment_id)
+
+        if self.success:
+            print('[+] Deleting comment finished')
+        else:
+            self.success = False
+            print('[-] Failed to delete comment')
+
+    def unspam_comment(self, comment_id):
+        print('[+] Marking comment as unspam')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=spam')
+
+        # Move cursor to the comment block given its id to display operations texts
+        hover = ActionChains(self.driver).move_to_element(
+            self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
+        hover.perform()
+
+        self.click_element('//*[@id="comment-%d"]/td[@class="comment column-comment"]/'
+                           'div[@class="row-actions"]/span[1]' % comment_id)
+
+        if self.success:
+            print('[+] Marking comment as unspam finished')
+        else:
+            print('[-] Failed to mark comment as unspam')
+
     def comment_tests(self):
-        self.get_by_relative_url('wp-admin/edit-comments.php')
-        # self.approve_comment(3)
-        # self.unapprove_comment(3)
-        self.reply_comment(3, 'Test comment reply')
-        # self.quick_edit_comment(3, new_content='New test comment')
-        # self.spam_comment(3)
-        # self.move_comment_to_trash(3)
-        # Note: edit_comment() will change the URL of current page
-        # self.edit_comment(3, new_author='New User', new_status='spam')
+        comment_id = self.post_new_comment('?p=1', 'comment_user', 'comment_user@a.com', '',
+                                           'A test comment_'+self.get_random_text())
+        self.approve_comment(comment_id) if comment_id is not None and self.success else None
+        self.unapprove_comment(comment_id) if comment_id is not None and self.success else None
+        self.reply_comment(comment_id, 'Test comment reply') if comment_id is not None and self.success else None
+        self.quick_edit_comment(comment_id,
+                                new_content='New test comment_'+self.get_random_text()) if comment_id is not None and self.success else None
+        self.edit_comment(comment_id, new_author='New User',
+                          new_status='spam') if comment_id is not None and self.success else None
+        self.unspam_comment(comment_id) if comment_id is not None and self.success else None
+        self.spam_comment(comment_id) if comment_id is not None and self.success else None
+        self.unspam_comment(comment_id) if comment_id is not None and self.success else None
+        self.move_comment_to_trash(comment_id) if comment_id is not None and self.success else None
+        self.delete_comment(comment_id) if comment_id is not None and self.success else None
+
 
     # By default, export_content should be one of the following: 'all', 'posts', 'pages'.
     def export(self, export_content=None):
@@ -928,7 +990,7 @@ class WPTest390(WPTest):
         if self.wait_for_text_in_page('New user created.', timeout=5):
             print('[+] Adding user finished')
             user_link = self.driver.find_element_by_xpath('//*[@id="message"]/p/a').get_attribute('href')
-            user_id = int(user_link[user_link.find('user_id=')+8:user_link.find('&', user_link.find('user_id='))])
+            user_id = int(user_link[user_link.find('user_id=') + 8:user_link.find('&', user_link.find('user_id='))])
         elif 'ERROR' in self.driver.page_source:
             self.success = False
             print('[-] Failed to add user: %s' % self.driver.find_element_by_xpath(
@@ -1018,7 +1080,7 @@ class WPTest390(WPTest):
             for media_item in uploaded_media_list:
                 if media_item.find_element_by_css_selector('.title').text in media_path:
                     media_link = media_item.find_element_by_css_selector('.edit-attachment').get_attribute('href')
-                    media_id = int(media_link[media_link.find('post=')+5:media_link.rfind('&action')])
+                    media_id = int(media_link[media_link.find('post=') + 5:media_link.rfind('&action')])
                     is_uploaded = True
                     break
 
@@ -1062,7 +1124,7 @@ class WPTest390(WPTest):
             self.driver.find_element_by_xpath('//*[@id="post-%d"]' % media_id))
         hover.perform()
 
-        self.click_element('//*[@id="post-%d"]/td[@class="title column-title"]/div/span[@class="delete"]' % media_id)
+        self.click_element('//*[@id="post-%d"]/td[@class="title column-title"]/div/span[@class="delete"]/a' % media_id)
 
         # Handle confirmation popup
         alert_popup = self.driver.switch_to.alert
@@ -1091,13 +1153,13 @@ if __name__ == '__main__':
 
     # test.setting_tests()
 
-    # test.category_tag_tests()
+    test.category_tag_tests()
 
     # test.comment_tests()
 
     # test.export('all')
 
-    test.user_test()
+    # test.user_test()
 
     # test.media_test()
 
