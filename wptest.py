@@ -59,15 +59,17 @@ class WPTest:
 
     def select_dropdown(self, xpath_selector, text):
         if not self.success:
-            return
+            return None
         try:
             self.wait_for_element_become_visible(xpath_selector)
             element = self.driver.find_element(By.XPATH, xpath_selector)
             Select(element).select_by_visible_text(text)
+            return Select(element).all_selected_options[0].get_attribute('value')
         except Exception as e:
             self.success = False
             print('[-] Failed to select option')
             print(e)
+            return None
 
     def checkbox_is_checked(self, xpath_selector):
         if not self.success:
@@ -210,5 +212,11 @@ class WPTest:
             print('[+] Window closed')
             self.driver.close()
 
-    def get_random_text(self, length=6):
-        return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
+    def get_random_text(self, char_type=3, length=6):
+        char_list = ''
+        if char_type & 0x111 == 0:
+            char_type = 3
+        char_list += string.ascii_uppercase if char_type & 0x1 == 1 else ''
+        char_list += string.digits if char_type & 0x2 == 1 else ''
+        char_list += string.ascii_lowercase if char_type & 0x4 == 1 else ''
+        return ''.join(random.choice(char_list) for _ in range(length))

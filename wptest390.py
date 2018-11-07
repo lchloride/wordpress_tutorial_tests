@@ -3,6 +3,7 @@ import random
 import string
 import time
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import NoSuchElementException
 from wptest import WPTest
 
 
@@ -81,7 +82,11 @@ class WPTest390(WPTest):
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
         self.to_page_top()
-        self.click_element('//*[@id="save-post"]')
+        if self.driver.find_element_by_xpath('//*[@id="save-post"]').is_displayed():
+            self.click_element('//*[@id="save-post"]')
+            print('[+] Saving post finished')
+        else:
+            print('[!] No need to save post')
 
     def publish_post(self):
         print('[+] Publishing post...')
@@ -361,10 +366,11 @@ class WPTest390(WPTest):
 
     def new_post_tests(self):
         self.init_new_post() if self.success else None
-        self.select_category(2) if self.success else None
+        self.select_category(1) if self.success else None
         self.add_title_text('Test') if self.success else None
         self.add_body_text(
-            '<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345</p>') if self.success else None
+            '<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345\n%s</p>' % self.get_random_text(3, 10)) \
+            if self.success else None
         self.add_excerpt('This is a test') if self.success else None
         self.change_status('Pending Review') if self.success else None
         self.change_visibility('private') if self.success else None
@@ -375,10 +381,10 @@ class WPTest390(WPTest):
         self.change_format('image') if self.success else None
         self.change_slug('another-title') if self.success else None
         self.change_discussion_state(comments=True, ping_status=False) if self.success else None
-        # self.save_post() if self.success else None if self.success else None
-        self.preview_post() if self.success else None if self.success else None
-        # self.publish_post() if self.success else None if self.success else None
-        # self.move_to_trash_post_page()
+        self.save_post() if self.success else None if self.success else None
+        # self.preview_post() if self.success else None if self.success else None
+        self.publish_post() if self.success else None if self.success else None
+        self.move_to_trash_post_page()
         if self.success:
             print('[+] New post test finished')
 
@@ -429,6 +435,11 @@ class WPTest390(WPTest):
         if ele is None:
             self.success = False
             print('[-] Theme with name %s not found' % theme_name)
+            return
+
+        if ele.find_element_by_xpath('//*/a[@class="button button-primary activate"]') is None:
+            self.success = False
+            print('[!] It seems the theme has been activated')
             return
 
         ele.find_element_by_xpath('//*/a[@class="button button-primary activate"]').click()
@@ -494,16 +505,46 @@ class WPTest390(WPTest):
 
         timeout = 10
         while self.driver.find_element_by_xpath('//*[@id="save"]').get_attribute('value') != 'Saved':
-            if timeout <= 10:
+            if timeout < 0:
                 self.success = False
                 print('[-] Failed to save changes')
                 return
+            time.sleep(1)
             timeout -= 1
 
         print('[+] Changing background color finished')
 
+    def delete_theme(self, theme_name):
+        print('[+] Deleting theme')
+        self.get_by_relative_url('wp-admin/themes.php')
+        self.click_element(
+            '//*[@aria-describedby="%s-action %s-name"]' % (theme_name, theme_name))
+
+        self.driver.save_screenshot('1.png')
+
+        try:
+            self.wait_for_element_become_visible('//div[@class="theme-backdrop"]')
+        except NoSuchElementException:
+            self.success = False
+            print('[-] Failed to open theme popup')
+            return
+        else:
+
+            self.click_element('//div[@class="theme-overlay"]//div[@class="theme-actions"]/a')
+            # Handle confirmation popup
+            alert_popup = self.driver.switch_to.alert
+            alert_popup.accept()
+
+        if self.success and self.wait_for_text_in_page('Theme deleted.'):
+            print('[+] Theme deleted')
+        else:
+            self.success = False
+            print('[-] Failed to delete theme')
+
     def theme_tests(self):
         self.init_theme_tests()
+        self.activate_theme('twentyfourteen')
+        self.delete_theme('twentyten')
         self.upload_theme(os.path.abspath('./twentyten.2.5.zip'))
         self.activate_theme('twentyten')
         self.change_background_color_theme_twentyten('#d8d8d8')
@@ -607,8 +648,7 @@ class WPTest390(WPTest):
 
         self.fill_textbox('//*[@id="tag-name"]', name)
         self.fill_textbox('//*[@id="tag-slug"]', slug)
-        if not is_tag:
-            self.select_dropdown('//*[@id="parent"]', str(parent))
+        parent_id = (self.select_dropdown('//*[@id="parent"]', str(parent)) if not is_tag else None)
         self.fill_textbox('//*[@id="tag-description"]', description)
         self.click_element('//*[@id="submit"]')
 
@@ -616,9 +656,26 @@ class WPTest390(WPTest):
         if 'A term with the name and slug provided already exists.' in self.driver.page_source:
             self.success = False
             print('[-] Cannot create category/tag since a term with the name and slug provided already exists')
-            return
+            return None
         else:
             print('[+] Category/Tag added')
+            category_list = self.driver.find_elements_by_xpath('//*[@id="the-list"]//div[@class="hidden"]')
+            # print(name, slug, parent_id, is_tag)
+            for c in category_list:
+                self.driver.execute_script(
+                    'document.getElementById("%s").style.display = "block";' % c.get_attribute("id"))
+
+                cname = c.find_element_by_css_selector('.name').text
+                cslug = c.find_element_by_css_selector('.slug').text
+                cparent = c.find_element_by_css_selector('.parent').text
+                # print(cname, cslug, cparent, cname.lower() == name.lower(), cslug.lower() == slug.lower(),
+                #       (is_tag or (not is_tag and parent_id == cparent)))
+                if cname.lower() == name.lower() and \
+                        cslug.lower() == slug.lower() and \
+                        (is_tag or (not is_tag and parent_id == cparent)):
+                    cid = c.get_attribute('id')
+                    return int(cid[7:])
+            return None
 
     def quick_edit_category(self, id, new_name, new_slug, is_tag=False):
         print('[+] Quick Editing category/tag')
@@ -636,17 +693,51 @@ class WPTest390(WPTest):
         self.fill_textbox('//*[@name="slug"]', new_slug)
         self.click_element('//*[@class="inline-edit-save submit"]/a[2]')
         error = self.driver.find_element_by_xpath('//*[@class="inline-edit-save submit"]/span[@class="error"]')
-        if not error.is_displayed():
+        if error.is_displayed():
             self.success = False
-            print('[-] Failed to update category/tag: %s', error.text)
+            print('[-] Failed to update category/tag: %s' % error.text)
         else:
             print('[+] Category/Tag updated')
 
+    def get_category_name(self, id=None, isRandom=True):
+        print('[+] Getting category name')
+        self.get_by_relative_url('wp-admin/edit-tags.php?taxonomy=category')
+        if id is None:
+            isRandom = True
+        if id is not None and type(id) == int:
+            cid = self.driver.find_element_by_xpath('//*[@id="tag-%d"]/td[1]/strong/a' % id).text
+            return cid.replace('— ', '\u00a0\u00a0\u00a0')
+        elif id is None and isRandom:
+            cid_list = self.driver.find_elements_by_xpath('//*[@id="the-list"]/tr')
+            idx = random.randint(0, len(cid_list) + 1)
+            if idx == len(cid_list):
+                return None
+            else:
+                cid = cid_list[idx].find_element_by_xpath('td[1]/strong/a').text
+                return cid.replace('— ', '\u00a0\u00a0\u00a0')
+        else:
+            self.success = False
+            print('[-] Failed to get category name')
+            return None
+
     def category_tag_tests(self):
         print('[*] Starting category/tag tests')
-        self.add_category('test_name', 'test-slug', 'This is a test category', parent='Test')
-        self.add_category('test_tag', 'test-tag-slug', 'This is a test tag', is_tag=True)
-        self.quick_edit_category(id=4, new_name='new_name', new_slug='new-slug', is_tag=True)
+        parent_name = self.get_category_name(isRandom=True)
+
+        category_id = self.add_category('test_name' + self.get_random_text(2, 2),
+                                        'test-slug' + self.get_random_text(2, 2),
+                                        'This is a test category', parent=parent_name, is_tag=False)
+        tag_id = self.add_category('test_tag' + self.get_random_text(2, 2),
+                                   'test-tag-slug' + self.get_random_text(2, 2),
+                                   'This is a test tag', is_tag=True)
+
+        self.quick_edit_category(id=category_id, new_name='new_name' + self.get_random_text(2, 2),
+                                 new_slug='new-slug' + self.get_random_text(2, 2), is_tag=False) \
+            if category_id is not None else None
+        self.quick_edit_category(id=tag_id, new_name='new_name' + self.get_random_text(2, 2),
+                                 new_slug='new-slug' + self.get_random_text(2, 2), is_tag=True) \
+            if tag_id is not None else None
+
         if self.success:
             print('[+] Category/Tag tests finished')
 
@@ -933,12 +1024,12 @@ class WPTest390(WPTest):
 
     def comment_tests(self):
         comment_id = self.post_new_comment('?p=1', 'comment_user', 'comment_user@a.com', '',
-                                           'A test comment_'+self.get_random_text())
+                                           'A test comment_' + self.get_random_text())
         self.approve_comment(comment_id) if comment_id is not None and self.success else None
         self.unapprove_comment(comment_id) if comment_id is not None and self.success else None
         self.reply_comment(comment_id, 'Test comment reply') if comment_id is not None and self.success else None
         self.quick_edit_comment(comment_id,
-                                new_content='New test comment_'+self.get_random_text()) if comment_id is not None and self.success else None
+                                new_content='New test comment_' + self.get_random_text()) if comment_id is not None and self.success else None
         self.edit_comment(comment_id, new_author='New User',
                           new_status='spam') if comment_id is not None and self.success else None
         self.unspam_comment(comment_id) if comment_id is not None and self.success else None
@@ -946,7 +1037,6 @@ class WPTest390(WPTest):
         self.unspam_comment(comment_id) if comment_id is not None and self.success else None
         self.move_comment_to_trash(comment_id) if comment_id is not None and self.success else None
         self.delete_comment(comment_id) if comment_id is not None and self.success else None
-
 
     # By default, export_content should be one of the following: 'all', 'posts', 'pages'.
     def export(self, export_content=None):
@@ -1147,20 +1237,20 @@ if __name__ == '__main__':
     test = WPTest390()
     test.login('admin', 'Admin123456')
 
-    # test.new_post_tests()
+    test.new_post_tests()
 
-    # test.theme_tests()
+    test.theme_tests()
 
-    # test.setting_tests()
+    test.setting_tests()
 
     test.category_tag_tests()
 
-    # test.comment_tests()
+    test.comment_tests()
 
-    # test.export('all')
+    test.export('all')
 
-    # test.user_test()
+    test.user_test()
 
-    # test.media_test()
+    test.media_test()
 
     test.close_all(delay=3)
