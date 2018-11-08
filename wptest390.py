@@ -550,7 +550,7 @@ class WPTest390(WPTest):
         self.activate_theme('twentyten') if self.success else None
 
         def get_random_color(r, g, b):
-            return "#%x%x%x" % (r, g, b)
+            return "#%02x%02x%02x" % (r, g, b)
 
         self.change_background_color_theme_twentyten(
             get_random_color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))) \
