@@ -152,7 +152,7 @@ class WPTest390(WPTest):
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
         self.to_page_top()
-
+        time.sleep(1)
         self.click_element('//*[@id="visibility"]/a')
         if visibility == 'public':
             self.click_element('//*[@id="visibility-radio-public"]')
@@ -371,6 +371,7 @@ class WPTest390(WPTest):
         self.add_body_text(
             '<h2>This is a test article.</h2>\n<p>This is a paragraph. 12345\n%s</p>' % self.get_random_text(3, 10)) \
             if self.success else None
+        self.save_post() if self.success else None if self.success else None
         self.add_excerpt('This is a test') if self.success else None
         self.change_status('Pending Review') if self.success else None
         self.change_visibility('private') if self.success else None
@@ -381,12 +382,11 @@ class WPTest390(WPTest):
         self.change_format('image') if self.success else None
         self.change_slug('another-title') if self.success else None
         self.change_discussion_state(comments=True, ping_status=False) if self.success else None
-        self.save_post() if self.success else None if self.success else None
-        # self.preview_post() if self.success else None if self.success else None
-        self.publish_post() if self.success else None if self.success else None
-        self.move_to_trash_post_page()
+        self.preview_post() if self.success else None
+        self.publish_post() if self.success else None
+        self.move_to_trash_post_page() if self.success else None
         if self.success:
-            print('[+] New post test finished')
+            print('[+] New post tests finished\n----------\n')
 
     def init_theme_tests(self):
         print('[*] Starting theme tests...')
@@ -542,12 +542,22 @@ class WPTest390(WPTest):
             print('[-] Failed to delete theme')
 
     def theme_tests(self):
-        self.init_theme_tests()
-        self.activate_theme('twentyfourteen')
-        self.delete_theme('twentyten')
-        self.upload_theme(os.path.abspath('./twentyten.2.5.zip'))
-        self.activate_theme('twentyten')
-        self.change_background_color_theme_twentyten('#d8d8d8')
+        print('[*] Starting theme tests...')
+        self.init_theme_tests() if self.success else None
+        self.activate_theme('twentyfourteen') if self.success else None
+        self.delete_theme('twentyten') if self.success else None
+        self.upload_theme(os.path.abspath('./twentyten.2.5.zip')) if self.success else None
+        self.activate_theme('twentyten') if self.success else None
+
+        def get_random_color(r, g, b):
+            return "#%x%x%x" % (r, g, b)
+
+        self.change_background_color_theme_twentyten(
+            get_random_color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))) \
+            if self.success else None
+
+        if self.success:
+            print('[-] Theme tests finished\n----------\n')
 
     def change_site_title(self, title):
         print('[+} Changing site title')
@@ -630,12 +640,12 @@ class WPTest390(WPTest):
 
         self.change_site_title('wp3_9_test') if self.success else None
         self.change_default_post_format('Image') if self.success else None
-        self.change_posts_per_page(15) if self.success else None
-        self.change_nested_comment_level(6) if self.success else None
-        self.change_media_medium_size(400, 400) if self.success else None
+        self.change_posts_per_page(random.randint(10, 15)) if self.success else None
+        self.change_nested_comment_level(random.randint(4,8)) if self.success else None
+        self.change_media_medium_size(random.randint(300, 500), random.randint(300, 500)) if self.success else None
         self.change_permalink_category_base('category') if self.success else None
         if self.success:
-            print('[+] Setting tests finished')
+            print('[+] Setting tests finished\n----------\n')
 
     # Category & Tag tests
 
@@ -739,7 +749,7 @@ class WPTest390(WPTest):
             if tag_id is not None else None
 
         if self.success:
-            print('[+] Category/Tag tests finished')
+            print('[+] Category/Tag tests finished\n----------\n')
 
     def post_new_comment(self, relative_article_url, author, email, website, comment_text):
         print('[+] Posting new comment to article')
@@ -768,7 +778,6 @@ class WPTest390(WPTest):
                 print('[+] New comment posted')
                 comment_link = self.driver.current_url
                 comment_id = int(comment_link[comment_link.find('comment-') + 8:])
-                print(comment_id)
             else:
                 self.success = False
                 print('[-] Failed to post new comment')
@@ -1023,6 +1032,7 @@ class WPTest390(WPTest):
             print('[-] Failed to mark comment as unspam')
 
     def comment_tests(self):
+        print('[*] Starting comment tests...')
         comment_id = self.post_new_comment('?p=1', 'comment_user', 'comment_user@a.com', '',
                                            'A test comment_' + self.get_random_text())
         self.approve_comment(comment_id) if comment_id is not None and self.success else None
@@ -1037,6 +1047,8 @@ class WPTest390(WPTest):
         self.unspam_comment(comment_id) if comment_id is not None and self.success else None
         self.move_comment_to_trash(comment_id) if comment_id is not None and self.success else None
         self.delete_comment(comment_id) if comment_id is not None and self.success else None
+        if self.success:
+            print('[+] Comment tests finished\n----------\n')
 
     # By default, export_content should be one of the following: 'all', 'posts', 'pages'.
     def export(self, export_content=None):
@@ -1149,9 +1161,12 @@ class WPTest390(WPTest):
             print('[-] Failed to edit user color scheme')
 
     def user_test(self):
+        print('[*] Starting user tests...')
         user_id = self.add_user(username='new_user1', email='new_user1@example.com', password='123456')
         self.edit_user_color_scheme(1, user_id) if self.success else None
         self.delete_user(user_id) if user_id is not None and self.success else None
+        if self.success:
+            print('[-] User tests finished\n----------\n')
 
     def upload_media(self, media_path):
         print('[+] Uploading media')
@@ -1227,9 +1242,12 @@ class WPTest390(WPTest):
             print('[-] Failed to delete media')
 
     def media_test(self):
+        print('[*] Starting media tests')
         media_id = self.upload_media(os.path.abspath('./apple.jpg'))
-        self.edit_media_prop(media_id, new_caption='New Apple') if media_id is not None else None
-        self.delete_media(media_id) if media_id is not None else None
+        self.edit_media_prop(media_id, new_caption='New Apple') if media_id is not None and self.success else None
+        self.delete_media(media_id) if media_id is not None and self.success else None
+        if self.success:
+            print('[+] Media tests finished\n----------\n')
 
 
 if __name__ == '__main__':
@@ -1237,20 +1255,20 @@ if __name__ == '__main__':
     test = WPTest390()
     test.login('admin', 'Admin123456')
 
-    test.new_post_tests()
+    test.new_post_tests() if test.success else None
 
-    test.theme_tests()
+    test.theme_tests() if test.success else None
 
-    test.setting_tests()
+    test.setting_tests() if test.success else None
 
-    test.category_tag_tests()
+    test.category_tag_tests() if test.success else None
 
-    test.comment_tests()
+    test.comment_tests() if test.success else None
 
-    test.export('all')
+    test.export('all') if test.success else None
 
-    test.user_test()
+    test.user_test() if test.success else None
 
-    test.media_test()
+    test.media_test() if test.success else None
 
     test.close_all(delay=3)
