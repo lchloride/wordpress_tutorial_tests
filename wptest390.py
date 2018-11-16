@@ -437,8 +437,10 @@ class WPTest390(WPTest):
             print('[-] Theme with name %s not found' % theme_name)
             return
 
-        if ele.find_element_by_xpath('//*/a[@class="button button-primary activate"]') is None:
-            self.success = False
+        try:
+            ele.find_element_by_xpath('//*[@aria-describedby="%s-action %s-name"]//a[@class="button activate"]'
+                                      % (theme_name, theme_name))
+        except Exception as e:
             print('[!] It seems the theme has been activated')
             return
 
@@ -517,10 +519,17 @@ class WPTest390(WPTest):
     def delete_theme(self, theme_name):
         print('[+] Deleting theme')
         self.get_by_relative_url('wp-admin/themes.php')
-        self.click_element(
-            '//*[@aria-describedby="%s-action %s-name"]' % (theme_name, theme_name))
 
-        self.driver.save_screenshot('1.png')
+        try:
+            self.driver.find_element_by_xpath('//*[@aria-describedby="%s-action %s-name"]' % (theme_name, theme_name))
+        except Exception as e:
+            print('[!] Theme of %s not found' % theme_name)
+            return
+        else:
+            self.click_element(
+                '//*[@aria-describedby="%s-action %s-name"]' % (theme_name, theme_name))
+
+        # self.driver.save_screenshot('1.png')
 
         try:
             self.wait_for_element_become_visible('//div[@class="theme-backdrop"]')
