@@ -566,7 +566,7 @@ class WPTest390(WPTest):
             if self.success else None
 
         if self.success:
-            print('[-] Theme tests finished\n----------\n')
+            print('[+] Theme tests finished\n----------\n')
 
     def change_site_title(self, title):
         print('[+} Changing site title')
@@ -1175,7 +1175,7 @@ class WPTest390(WPTest):
         self.edit_user_color_scheme(1, user_id) if self.success else None
         self.delete_user(user_id) if user_id is not None and self.success else None
         if self.success:
-            print('[-] User tests finished\n----------\n')
+            print('[+] User tests finished\n----------\n')
 
     def upload_media(self, media_path):
         print('[+] Uploading media')
