@@ -357,6 +357,7 @@ class WPTest470(WPTest):
         print('[+] Moving post to trash')
         assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
         assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
 
         self.click_element('//*[@id="delete-action"]/a')
         if self.wait_for_text_in_page('1 post moved to the Trash.'):
@@ -364,6 +365,28 @@ class WPTest470(WPTest):
         else:
             self.success = False
             print('[-] Failed to move post to trash')
+
+    def change_permalink(self, new_name):
+        print('[+] Moving post to trash')
+        assert self.driver.current_url.rfind('post-new.php'), '[-] Not in /admin/post-new.php page'
+        assert self.driver.get_cookie('wp_new_post_init') != 'success', '[-] init_new_post() not finished yet'
+        self.to_page_top()
+
+        if not self.driver.find_element_by_xpath('//*[@id="edit-slug-buttons"]/button').is_displayed():
+            self.success = False
+            print('[-] Failed to change permalink, please set title first')
+            return
+
+        self.click_element('//*[@id="edit-slug-buttons"]/button')
+
+        self.fill_textbox('//*[@id="new-post-slug"]', new_name)
+
+        self.click_element('//*[@id="edit-slug-buttons"]/button[1]')
+
+        if self.success:
+            print('[+] Changing permalink finished')
+        else:
+            print('[-] Failed to change permalink')
 
     def new_post_tests(self):
         self.init_new_post() if self.success else None
@@ -383,6 +406,7 @@ class WPTest470(WPTest):
         self.change_format('image') if self.success else None
         self.change_slug('another-title') if self.success else None
         self.change_discussion_state(comments=True, ping_status=False) if self.success else None
+        self.change_permalink('permalink-'+self.get_random_text(2, 2)) if self.success else None
         self.preview_post() if self.success else None
         self.publish_post() if self.success else None
         self.move_to_trash_post_page() if self.success else None
@@ -1271,7 +1295,7 @@ if __name__ == '__main__':
 
     # test.setting_tests() if test.success else None
 
-    test.category_tag_tests() if test.success else None
+    # test.category_tag_tests() if test.success else None
 
     # test.comment_tests() if test.success else None
 
@@ -1279,6 +1303,7 @@ if __name__ == '__main__':
 
     # test.user_test() if test.success else None
 
-    # test.media_test() if test.success else None
+    test.media_test() if test.success else None
 
-    # test.close_all(delay=3)
+    test.close_all(delay=3)
+
