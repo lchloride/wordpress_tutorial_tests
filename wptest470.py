@@ -564,11 +564,14 @@ class WPTest470(WPTest):
             print('[-] Failed to open theme popup')
             return
         else:
-
+            self.driver.execute_script("window.onbeforeunload = function() {};")
             self.click_element('//div[@class="theme-overlay"]//div[@class="theme-actions"]/a')
+            time.sleep(1)
+
             # Handle confirmation popup
             alert_popup = self.driver.switch_to.alert
             alert_popup.accept()
+            time.sleep(1)
 
         if self.success:
             print('[+] Theme deleted')
@@ -732,10 +735,10 @@ class WPTest470(WPTest):
             self.driver.find_element_by_xpath('//*[@id="tag-%d"]/td[1]' % id))
         hover.perform()
 
-        self.click_element('//*[@id="tag-%d"]/td[1]/div[1]/span[2]/a' % id)
-        self.fill_textbox('//*[@name="name"]', new_name)
-        self.fill_textbox('//*[@name="slug"]', new_slug)
-        self.click_element('//*[@class="inline-edit-save submit"]/a[2]')
+        self.click_element('//*[@id="tag-%d"]/td[1]/div[@class="row-actions"]/span[2]/a' % id)
+        self.fill_textbox('//*[@class="input-text-wrap"]/input[@name="name"]', new_name)
+        self.fill_textbox('//*[@class="input-text-wrap"]/input[@name="slug"]', new_slug)
+        self.click_element('//*[@class="inline-edit-save submit"]/button[2]')
         error = self.driver.find_element_by_xpath('//*[@class="inline-edit-save submit"]/span[@class="error"]')
         if error.is_displayed():
             self.success = False
@@ -778,6 +781,7 @@ class WPTest470(WPTest):
         self.quick_edit_category(id=category_id, new_name='new_name' + self.get_random_text(2, 2),
                                  new_slug='new-slug' + self.get_random_text(2, 2), is_tag=False) \
             if category_id is not None else None
+
         self.quick_edit_category(id=tag_id, new_name='new_name' + self.get_random_text(2, 2),
                                  new_slug='new-slug' + self.get_random_text(2, 2), is_tag=True) \
             if tag_id is not None else None
@@ -823,13 +827,13 @@ class WPTest470(WPTest):
 
     def approve_comment(self, comment_id):
         print('[+] Approve comment')
-        self.get_by_relative_url('wp-admin/edit-comments.php')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=all')
 
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
 
-        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="approve"]' % comment_id
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/div[@class="row-actions"]/span[@class="approve"]' % comment_id
         if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
             self.click_element(ele_xpath + '/a')
         else:
@@ -842,14 +846,14 @@ class WPTest470(WPTest):
 
     def unapprove_comment(self, comment_id):
         print('[+] Unapprove comment')
-        self.get_by_relative_url('wp-admin/edit-comments.php')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=all')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
 
-        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="unapprove"]' % comment_id
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/div[@class="row-actions"]/span[@class="unapprove"]' % comment_id
         if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
             self.click_element(ele_xpath + '/a')
         else:
@@ -862,14 +866,14 @@ class WPTest470(WPTest):
 
     def reply_comment(self, comment_id, reply_content):
         print('[+] Replying comment')
-        self.get_by_relative_url('wp-admin/edit-comments.php')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=all')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
 
-        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="reply hide-if-no-js"]' % comment_id
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/div[@class="row-actions"]/span[@class="reply hide-if-no-js"]' % comment_id
         if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
             self.click_element(ele_xpath + '/a')
         else:
@@ -888,14 +892,14 @@ class WPTest470(WPTest):
 
     def quick_edit_comment(self, comment_id, new_author=None, new_email=None, new_website=None, new_content=None):
         print('[+] Quick Editing comment')
-        self.get_by_relative_url('wp-admin/edit-comments.php')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=all')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
 
-        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="quickedit hide-if-no-js"]' % comment_id
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/div[@class="row-actions"]/span[@class="quickedit hide-if-no-js"]' % comment_id
         if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
             self.click_element(ele_xpath + '/a')
         else:
@@ -920,14 +924,14 @@ class WPTest470(WPTest):
 
     def spam_comment(self, comment_id):
         print('[+] Marking comment as spam')
-        self.get_by_relative_url('wp-admin/edit-comments.php')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=all')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
 
-        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="spam"]' % comment_id
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/div[@class="row-actions"]/span[@class="spam"]' % comment_id
         if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
             self.click_element(ele_xpath + '/a')
         else:
@@ -942,14 +946,14 @@ class WPTest470(WPTest):
 
     def move_comment_to_trash(self, comment_id):
         print('[+] Moving comment to trash')
-        self.get_by_relative_url('wp-admin/edit-comments.php')
+        self.get_by_relative_url('wp-admin/edit-comments.php?comment_status=all')
 
         # Move cursor to the comment block given its id to display operations texts
         hover = ActionChains(self.driver).move_to_element(
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
 
-        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[@class="trash"]' % comment_id
+        ele_xpath = '//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/div[@class="row-actions"]/span[@class="trash"]' % comment_id
         if self.driver.find_element_by_xpath(ele_xpath).is_displayed():
             self.click_element(ele_xpath + '/a')
         else:
@@ -978,16 +982,16 @@ class WPTest470(WPTest):
 
         self.to_page_top()
 
-        if new_status in ['approved', 'spam']:
-            self.click_element('//*[@id="comment-status-radio"]/label[@class="%s"]/input' % new_status)
-        elif new_status == 'pending':
-            self.click_element('//*[@id="comment-status-radio"]/label[@class="waiting"]/input' % new_status)
+        status2value = {'approved': '1', 'pending': '0', 'spam': 'spam'}
+
+        if new_status in ['approved', 'spam', 'pending']:
+            self.click_element('//*[@id="comment-status-radio"]/label/input[@value="%s"]' % status2value[new_status])
         else:
             print("[!] new_status should be one of the following: None(Not change), 'approved', 'pending', 'spam'.")
 
         trans_mon_str = ['', '01-Jan', '02-Feb', '03-Mar', '04-Apr', '05-May', '06-Jun', '07-Jul', '08-Aug', '09-Sep',
                          '10-Oct', '11-Nov', '12-Dec']
-        self.click_element('//*[@id="misc-publishing-actions"]/div[3]/a')
+        self.click_element('//*[@id="misc-publishing-actions"]/div[@class="misc-pub-section curtime misc-pub-curtime"]/a')
 
         if year is not None:
             self.fill_textbox('//*[@id="aa"]', str(year))
@@ -1012,16 +1016,13 @@ class WPTest470(WPTest):
 
         self.click_element('//*[@id="timestampdiv"]/p/a[1]')
 
-        # Check datetime in format like 09-Sep 04, 2018 @ 14 : 47
-        publishing_datetime = '%s %s, %s @ %s : %s' % (
-            trans_mon_str[int(month)], str(day), str(year), str(hour), str(minute))
-        publishing_datetime = publishing_datetime.replace(' ', '')
-        real_datetime = self.driver.find_element_by_xpath('//*[@id="timestamp"]/b').text.replace(' ', '')
-        if not publishing_datetime == real_datetime:
+        # Check datetime in format like Nov 15, 2018 @ 20:19
+        publishing_datetime = '%s %s, %s @ %s:%s' % (trans_mon_str[int(month)][3:], day, year, hour, minute)
+        if publishing_datetime == self.driver.find_element_by_xpath('//*[@id="timestamp"]/b').text:
+            print('[+] Changing publishing datetime successfully')
+        else:
             self.success = False
-            print('[-] Current publishing datetime does not match: Wanted: %s, Real: %s'
-                  % (publishing_datetime, real_datetime))
-            return
+            print('[-] Current publishing datetime does not match')
 
         self.click_element('//*[@id="save"]')
 
@@ -1040,7 +1041,7 @@ class WPTest470(WPTest):
         hover.perform()
 
         self.click_element(
-            '//*[@id="comment-%d"]/td[@class="comment column-comment"]/div[@class="row-actions"]/span[2]/a' % comment_id)
+            '//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/div[@class="row-actions"]/span[2]/a' % comment_id)
 
         if self.success:
             print('[+] Deleting comment finished')
@@ -1057,7 +1058,7 @@ class WPTest470(WPTest):
             self.driver.find_element_by_xpath('//*[@id="comment-%d"]' % comment_id))
         hover.perform()
 
-        self.click_element('//*[@id="comment-%d"]/td[@class="comment column-comment"]/'
+        self.click_element('//*[@id="comment-%d"]/td[@class="comment column-comment has-row-actions column-primary"]/'
                            'div[@class="row-actions"]/span[1]' % comment_id)
 
         if self.success:
@@ -1080,6 +1081,7 @@ class WPTest470(WPTest):
         self.spam_comment(comment_id) if comment_id is not None and self.success else None
         self.unspam_comment(comment_id) if comment_id is not None and self.success else None
         self.move_comment_to_trash(comment_id) if comment_id is not None and self.success else None
+        time.sleep(1)
         self.delete_comment(comment_id) if comment_id is not None and self.success else None
         if self.success:
             print('[+] Comment tests finished\n----------\n')
@@ -1114,9 +1116,11 @@ class WPTest470(WPTest):
             first_name) > 0 else None
         self.fill_textbox('//*[@id="last_name"]', last_name) if last_name is not None and len(last_name) > 0 else None
         self.fill_textbox('//*[@id="url"]', website) if website is not None and len(website) > 0 else None
-        self.fill_textbox('//*[@id="pass1"]', password)
-        self.fill_textbox('//*[@id="pass2"]', password)
-        self.click_element('//*[@id="send_password"]') if send_password else None
+        self.click_element('//*[@id="createuser"]/table/tbody/tr[6]/td/button')
+        self.fill_textbox('//*[@id="pass1-text"]', password)
+        if self.driver.find_element_by_xpath('//*[@name="pw_weak"]').is_displayed():
+            self.click_element('//*[@name="pw_weak"]')
+        self.click_element('//*[@id="send_user_notification"]') if send_password else None
         self.select_dropdown('//*[@id="role"]', 'Subscriber' if role is None else role)
 
         self.click_element('//*[@id="createusersub"]')
@@ -1149,10 +1153,6 @@ class WPTest470(WPTest):
         self.click_element('//*[@id="user-%d"]//span[@class="delete"]/a' % user_id)
 
         if self.wait_for_text_in_page('Delete Users'):
-            if reassign_user is None:
-                self.click_element('//*[@id="delete_option0"]')
-            else:
-                self.select_dropdown('//*[@id="reassign_user"]', reassign_user)
             self.click_element('//*[@id="submit"]')
 
             if self.wait_for_text_in_page('User deleted.'):
@@ -1175,7 +1175,7 @@ class WPTest470(WPTest):
                 self.driver.find_element_by_xpath('//*[@id="user-%d"]' % user_id))
             hover.perform()
 
-            self.click_element('//*[@id="user-%d"]/td[@class="username column-username"]/div/span[@class="edit"]'
+            self.click_element('//*[@id="user-%d"]/td[@class="username column-username has-row-actions column-primary"]/div/span[@class="edit"]'
                                % user_id)
 
         scheme_idx2id = ['admin_color_fresh', 'admin_color_light', 'admin_color_blue', 'admin_color_coffee',
@@ -1200,7 +1200,7 @@ class WPTest470(WPTest):
         self.edit_user_color_scheme(1, user_id) if self.success else None
         self.delete_user(user_id) if user_id is not None and self.success else None
         if self.success:
-            print('[-] User tests finished\n----------\n')
+            print('[+] User tests finished\n----------\n')
 
     def upload_media(self, media_path):
         print('[+] Uploading media')
@@ -1297,11 +1297,11 @@ if __name__ == '__main__':
 
     # test.category_tag_tests() if test.success else None
 
-    # test.comment_tests() if test.success else None
+    test.comment_tests() if test.success else None
 
-    # test.export('all') if test.success else None
+    test.export('all') if test.success else None
 
-    # test.user_test() if test.success else None
+    test.user_test() if test.success else None
 
     test.media_test() if test.success else None
 
